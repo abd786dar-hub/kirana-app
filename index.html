@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -113,6 +114,24 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
         }
+        .lang-selector {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .lang-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid transparent;
+        }
+        .lang-btn.active {
+            background: #667eea;
+            color: white;
+            border: 2px solid #667eea;
+        }
         .items-list {
             background: #f9f9f9;
             border-radius: 6px;
@@ -204,6 +223,34 @@
         .row-2 input, .row-2 button {
             margin-bottom: 0;
         }
+        .input-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .input-options button {
+            margin-bottom: 0;
+            padding: 10px 6px;
+            font-size: 12px;
+        }
+        #scanner {
+            width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .scanner-section {
+            display: none;
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .scanner-section.show {
+            display: block;
+        }
+        .hint { font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -222,16 +269,40 @@
 
         <!-- ENTRY TAB -->
         <div id="entry" class="tab-content active">
-            <div class="section">
-                <h2>🎤 Quick Entry</h2>
+            
+            <!-- Language Selector -->
+            <div style="margin-bottom: 12px;">
+                <div class="lang-selector">
+                    <button class="lang-btn active" onclick="setLanguage('en')">English</button>
+                    <button class="lang-btn" onclick="setLanguage('hi')">Hinglish</button>
+                </div>
+            </div>
+
+            <!-- THREE INPUT OPTIONS -->
+            <div class="input-options">
+                <button class="btn-success" onclick="toggleScanner('item')" style="font-size: 11px;">📦 Scan Item</button>
+                <button class="voice-btn" onclick="startVoice()" style="margin-bottom: 0; font-size: 11px;">🎤 Voice</button>
+                <button onclick="toggleManualEntry()" style="font-size: 11px;">⌨️ Type</button>
+            </div>
+
+            <!-- SCAN ITEM -->
+            <div id="scanItemSection" class="scanner-section">
+                <video id="scanner" autoplay></video>
+                <button class="btn-danger" onclick="toggleScanner('item')" style="width: 100%; margin-bottom: 0;">Close Scanner</button>
+            </div>
+
+            <!-- VOICE INPUT -->
+            <div id="voiceSection" class="section">
+                <h2>🎤 Speak Item</h2>
                 <button class="voice-btn" id="voiceBtn" onclick="startVoice()">
                     🎤 Tap to Speak
                 </button>
-                <p style="font-size: 11px; color: #999; margin-top: 4px;">Say: "2 maggi 10" (qty, item, price)</p>
+                <p class="hint" id="voiceHint">Say: "2 maggi 10" (qty, item, price)</p>
             </div>
 
-            <div class="section">
-                <h2>⌨️ Or Type</h2>
+            <!-- MANUAL ENTRY -->
+            <div id="manualSection" class="section" style="display: none;">
+                <h2>⌨️ Type Item</h2>
                 <div class="row-2">
                     <input type="text" id="itemInput" placeholder="Item name" onkeypress="if(event.key==='Enter') addItem()">
                     <input type="number" id="qtyInput" placeholder="Qty" value="1" min="1">
@@ -240,13 +311,22 @@
                 <button onclick="addItem()">+ Add Item</button>
             </div>
 
+            <!-- SCAN PRICE -->
+            <div id="scanPriceSection" class="scanner-section">
+                <p class="hint">Scan a QR code or barcode with price encoded</p>
+                <video id="priceScanner" autoplay></video>
+                <button class="btn-danger" onclick="toggleScanner('price')" style="width: 100%; margin-bottom: 0;">Close Scanner</button>
+            </div>
+
+            <!-- CART -->
             <div id="itemsSection" style="display: none;">
                 <div class="section">
-                    <h2>🛒 Items</h2>
+                    <h2>🛒 Items in Cart</h2>
                     <div class="items-list" id="itemsList"></div>
                 </div>
             </div>
 
+            <!-- SUMMARY -->
             <div class="summary">
                 <div class="summary-row">
                     <span>Items:</span>
@@ -284,7 +364,6 @@
 
     <script>
         // ============ FIREBASE CONFIG ============
-        // ⚠️ REPLACE THESE 8 VALUES WITH YOUR FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAqqvJtnVu4-Z_RbKE2fjn4mm62p4U55UE",
             authDomain: "kirana-64484.firebaseapp.com",
@@ -303,16 +382,20 @@
         // ============ STATE ============
         let cart = [];
         let listening = false;
+        let language = 'en'; // 'en' or 'hi'
+        let scanningFor = null; // 'item', 'price', or null
+        let cameraStream = null;
+
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
         if (recognition) {
-            recognition.language = 'en-IN';
             recognition.continuous = false;
+            recognition.interimResults = true;
             recognition.onstart = () => {
                 listening = true;
                 document.getElementById('voiceBtn').classList.add('listening');
-                document.getElementById('voiceBtn').textContent = '🔴 Listening...';
+                document.getElementById('voiceBtn').textContent = language === 'hi' ? '🔴 सुन रहे हैं...' : '🔴 Listening...';
             };
             recognition.onresult = (event) => {
                 let transcript = '';
@@ -324,16 +407,139 @@
             recognition.onend = () => {
                 listening = false;
                 document.getElementById('voiceBtn').classList.remove('listening');
-                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
+                document.getElementById('voiceBtn').textContent = language === 'hi' ? '🎤 बोलें' : '🎤 Tap to Speak';
                 document.getElementById('itemInput').focus();
             };
         }
 
-        // ============ FUNCTIONS ============
-        function startVoice() {
-            if (recognition && !listening) recognition.start();
+        // ============ LANGUAGE ============
+        function setLanguage(lang) {
+            language = lang;
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (lang === 'hi') {
+                document.getElementById('voiceHint').textContent = 'कहें: "2 मैगी 10" (मात्रा, आइटम, कीमत)';
+                document.getElementById('itemInput').placeholder = 'वस्तु का नाम';
+                document.getElementById('qtyInput').placeholder = 'मात्रा';
+                document.getElementById('priceInput').placeholder = 'कीमत (₹)';
+                document.getElementById('customerName').placeholder = 'ग्राहक का नाम (वैकल्पिक)';
+                if (recognition) recognition.language = 'hi-IN';
+            } else {
+                document.getElementById('voiceHint').textContent = 'Say: "2 maggi 10" (qty, item, price)';
+                document.getElementById('itemInput').placeholder = 'Item name';
+                document.getElementById('qtyInput').placeholder = 'Qty';
+                document.getElementById('priceInput').placeholder = 'Price (₹)';
+                document.getElementById('customerName').placeholder = 'Customer name (optional)';
+                if (recognition) recognition.language = 'en-IN';
+            }
         }
 
+        // ============ VOICE INPUT ============
+        function startVoice() {
+            if (recognition && !listening) {
+                document.getElementById('manualSection').style.display = 'none';
+                document.getElementById('voiceSection').style.display = 'block';
+                recognition.start();
+            }
+        }
+
+        // ============ TOGGLE MANUAL ENTRY ============
+        function toggleManualEntry() {
+            const manualSection = document.getElementById('manualSection');
+            const voiceSection = document.getElementById('voiceSection');
+            if (manualSection.style.display === 'none') {
+                manualSection.style.display = 'block';
+                voiceSection.style.display = 'none';
+                document.getElementById('itemInput').focus();
+            } else {
+                manualSection.style.display = 'none';
+            }
+        }
+
+        // ============ CAMERA & SCANNER ============
+        async function toggleScanner(type) {
+            if (type === 'item') {
+                const section = document.getElementById('scanItemSection');
+                if (section.classList.contains('show')) {
+                    section.classList.remove('show');
+                    stopCamera('scanner');
+                } else {
+                    document.getElementById('manualSection').style.display = 'none';
+                    document.getElementById('voiceSection').style.display = 'none';
+                    section.classList.add('show');
+                    startCamera('scanner', 'item');
+                }
+            } else if (type === 'price') {
+                const section = document.getElementById('scanPriceSection');
+                if (section.classList.contains('show')) {
+                    section.classList.remove('show');
+                    stopCamera('priceScanner');
+                } else {
+                    section.classList.add('show');
+                    startCamera('priceScanner', 'price');
+                }
+            }
+        }
+
+        async function startCamera(videoId, type) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById(videoId);
+                video.srcObject = stream;
+                
+                // Simple barcode detection (reads QR codes)
+                let detectionStarted = false;
+                video.onplay = () => {
+                    if (!detectionStarted) {
+                        detectionStarted = true;
+                        scanQRCode(video, type);
+                    }
+                };
+            } catch (err) {
+                showStatus('Camera access denied', 'error');
+            }
+        }
+
+        function stopCamera(videoId) {
+            const video = document.getElementById(videoId);
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function scanQRCode(video, type) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const scan = () => {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    if (code) {
+                        if (type === 'item') {
+                            document.getElementById('itemInput').value = code.data;
+                            toggleScanner('item');
+                        } else if (type === 'price') {
+                            const price = parseFloat(code.data);
+                            if (!isNaN(price)) {
+                                document.getElementById('priceInput').value = price.toFixed(2);
+                                toggleScanner('price');
+                            }
+                        }
+                        return;
+                    }
+                }
+                requestAnimationFrame(scan);
+            };
+            scan();
+        }
+
+        // ============ ADD ITEM ============
         function addItem() {
             const itemInput = document.getElementById('itemInput');
             const qtyInput = document.getElementById('qtyInput');
@@ -344,7 +550,7 @@
             const price = parseFloat(priceInput.value) || 0;
 
             if (!itemName) {
-                showStatus('Enter item name', 'error');
+                showStatus(language === 'hi' ? 'वस्तु का नाम दर्ज करें' : 'Enter item name', 'error');
                 return;
             }
 
@@ -398,21 +604,22 @@
         }
 
         function clearCart() {
-            if (confirm('Clear all items?')) {
+            if (confirm(language === 'hi' ? 'सभी आइटम को साफ़ करें?' : 'Clear all items?')) {
                 cart = [];
                 document.getElementById('customerName').value = '';
                 updateUI();
-                showStatus('Cart cleared', 'error');
+                showStatus(language === 'hi' ? 'कार्ट साफ़ किया गया' : 'Cart cleared', 'error');
             }
         }
 
+        // ============ COMPLETE SALE ============
         async function completeSale() {
             if (cart.length === 0) {
-                showStatus('Add items first', 'error');
+                showStatus(language === 'hi' ? 'पहले आइटम जोड़ें' : 'Add items first', 'error');
                 return;
             }
 
-            const customerName = document.getElementById('customerName').value || 'Walk-in';
+            const customerName = document.getElementById('customerName').value || (language === 'hi' ? 'अतिथि' : 'Walk-in');
             const totalAmount = cart.reduce((sum, item) => sum + item.total, 0);
 
             const transaction = {
@@ -426,7 +633,7 @@
 
             try {
                 await db.ref('transactions/' + transaction.id).set(transaction);
-                showStatus(`✓ Sale completed! ₹${totalAmount.toFixed(2)}`, 'success');
+                showStatus(`✓ ${language === 'hi' ? 'बिक्री पूरी हुई' : 'Sale completed'}! ₹${totalAmount.toFixed(2)}`, 'success');
                 cart = [];
                 document.getElementById('customerName').value = '';
                 updateUI();
@@ -436,6 +643,7 @@
             }
         }
 
+        // ============ LOAD TRANSACTIONS ============
         function loadTransactions() {
             const today = new Date().toISOString().split('T')[0];
             db.ref('transactions').on('value', (snapshot) => {
@@ -458,6 +666,7 @@
             });
         }
 
+        // ============ UI UTILITIES ============
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
