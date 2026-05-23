@@ -126,6 +126,7 @@
             background: #f0f0f0;
             color: #333;
             border: 2px solid transparent;
+            margin-bottom: 0;
         }
         .lang-btn.active {
             background: #667eea;
@@ -215,6 +216,7 @@
         .status.show { display: block; }
         .status.success { background: #d1fae5; color: #065f46; }
         .status.error { background: #fee2e2; color: #991b1b; }
+        .status.info { background: #dbeafe; color: #0c2d6b; }
         .row-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -234,23 +236,15 @@
             padding: 10px 6px;
             font-size: 12px;
         }
-        #scanner {
-            width: 100%;
-            max-height: 300px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .scanner-section {
-            display: none;
-            background: #f9f9f9;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-        }
-        .scanner-section.show {
-            display: block;
-        }
         .hint { font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 8px; }
+        .voice-result {
+            background: #e0f2fe;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #0284c7;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -274,54 +268,42 @@
             <div style="margin-bottom: 12px;">
                 <div class="lang-selector">
                     <button class="lang-btn active" onclick="setLanguage('en')">English</button>
-                    <button class="lang-btn" onclick="setLanguage('hi')">Hinglish</button>
+                    <button class="lang-btn" onclick="setLanguage('hi')">हिंदी</button>
                 </div>
             </div>
 
             <!-- THREE INPUT OPTIONS -->
             <div class="input-options">
-                <button class="btn-success" onclick="toggleScanner('item')" style="font-size: 11px;">📦 Scan Item</button>
-                <button class="voice-btn" onclick="startVoice()" style="margin-bottom: 0; font-size: 11px;">🎤 Voice</button>
-                <button onclick="toggleManualEntry()" style="font-size: 11px;">⌨️ Type</button>
+                <button class="btn-success" onclick="toggleVoice()" style="font-size: 11px;">🎤 Voice</button>
+                <button onclick="toggleManual()" style="font-size: 11px;">⌨️ Type</button>
+                <button class="btn-secondary" onclick="showMessage('Scan coming soon')" style="font-size: 11px;">📦 Scan</button>
             </div>
 
-            <!-- SCAN ITEM -->
-            <div id="scanItemSection" class="scanner-section">
-                <video id="scanner" autoplay></video>
-                <button class="btn-danger" onclick="toggleScanner('item')" style="width: 100%; margin-bottom: 0;">Close Scanner</button>
-            </div>
-
-            <!-- VOICE INPUT -->
-            <div id="voiceSection" class="section">
-                <h2>🎤 Speak Item</h2>
-                <button class="voice-btn" id="voiceBtn" onclick="startVoice()">
+            <!-- VOICE SECTION -->
+            <div id="voiceSection" class="section" style="display: none;">
+                <h2 id="voiceTitle">🎤 Voice Input</h2>
+                <p class="hint" id="voiceHint">Say: "2 maggi 10" (qty, item, price)</p>
+                <button class="voice-btn" id="voiceBtn" onclick="startVoiceInput()">
                     🎤 Tap to Speak
                 </button>
-                <p class="hint" id="voiceHint">Say: "2 maggi 10" (qty, item, price)</p>
+                <div id="voiceResult" class="voice-result" style="display: none;"></div>
             </div>
 
-            <!-- MANUAL ENTRY -->
+            <!-- MANUAL SECTION -->
             <div id="manualSection" class="section" style="display: none;">
-                <h2>⌨️ Type Item</h2>
+                <h2 id="typeTitle">⌨️ Type Item</h2>
                 <div class="row-2">
-                    <input type="text" id="itemInput" placeholder="Item name" onkeypress="if(event.key==='Enter') addItem()">
+                    <input type="text" id="itemInput" placeholder="Item name">
                     <input type="number" id="qtyInput" placeholder="Qty" value="1" min="1">
                 </div>
                 <input type="number" id="priceInput" placeholder="Price (₹)" step="0.01" min="0">
                 <button onclick="addItem()">+ Add Item</button>
             </div>
 
-            <!-- SCAN PRICE -->
-            <div id="scanPriceSection" class="scanner-section">
-                <p class="hint">Scan a QR code or barcode with price encoded</p>
-                <video id="priceScanner" autoplay></video>
-                <button class="btn-danger" onclick="toggleScanner('price')" style="width: 100%; margin-bottom: 0;">Close Scanner</button>
-            </div>
-
             <!-- CART -->
             <div id="itemsSection" style="display: none;">
                 <div class="section">
-                    <h2>🛒 Items in Cart</h2>
+                    <h2 id="cartTitle">🛒 Items in Cart</h2>
                     <div class="items-list" id="itemsList"></div>
                 </div>
             </div>
@@ -329,15 +311,15 @@
             <!-- SUMMARY -->
             <div class="summary">
                 <div class="summary-row">
-                    <span>Items:</span>
+                    <span id="itemsLabel">Items:</span>
                     <span id="itemCount">0</span>
                 </div>
                 <div class="summary-row">
-                    <span>Total Qty:</span>
+                    <span id="qtyLabel">Total Qty:</span>
                     <span id="totalQty">0</span>
                 </div>
                 <div class="summary-row total">
-                    <span>TOTAL:</span>
+                    <span id="totalLabel">TOTAL:</span>
                     <span id="totalAmount">₹0</span>
                 </div>
             </div>
@@ -350,10 +332,10 @@
         <!-- LEDGER TAB -->
         <div id="ledger" class="tab-content">
             <div class="section">
-                <h2>📊 Today's Sales</h2>
+                <h2 id="ledgerTitle">📊 Today's Sales</h2>
                 <div class="summary">
                     <div class="summary-row total">
-                        <span>TOTAL:</span>
+                        <span id="totalSalesLabel">TOTAL:</span>
                         <span id="todayTotal">₹0</span>
                     </div>
                 </div>
@@ -382,72 +364,199 @@
         // ============ STATE ============
         let cart = [];
         let listening = false;
-        let language = 'en'; // 'en' or 'hi'
-        let scanningFor = null; // 'item', 'price', or null
-        let cameraStream = null;
-
+        let language = 'en';
+        
+        // SPEECH RECOGNITION - FIX 1
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        let recognition = null;
 
-        if (recognition) {
+        if (!SpeechRecognition) {
+            console.warn('Speech Recognition not available in this browser');
+        } else {
+            recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = true;
+            
             recognition.onstart = () => {
                 listening = true;
                 document.getElementById('voiceBtn').classList.add('listening');
                 document.getElementById('voiceBtn').textContent = language === 'hi' ? '🔴 सुन रहे हैं...' : '🔴 Listening...';
             };
+            
             recognition.onresult = (event) => {
                 let transcript = '';
+                let isFinal = false;
+                
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
+                    const transcriptPart = event.results[i][0].transcript;
+                    transcript += transcriptPart;
+                    isFinal = event.results[i].isFinal;
                 }
-                document.getElementById('itemInput').value = transcript.trim();
+                
+                transcript = transcript.trim();
+                
+                // Display voice result - FIX 2
+                const resultDiv = document.getElementById('voiceResult');
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = '🎤 ' + transcript;
+                
+                // Parse and auto-fill on final result - FIX 3
+                if (isFinal && transcript) {
+                    parseVoiceInput(transcript);
+                }
             };
+            
+            recognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                showMessage('Voice error: ' + event.error, 'error');
+                listening = false;
+                document.getElementById('voiceBtn').classList.remove('listening');
+                document.getElementById('voiceBtn').textContent = language === 'hi' ? '🎤 बोलें' : '🎤 Tap to Speak';
+            };
+            
             recognition.onend = () => {
                 listening = false;
                 document.getElementById('voiceBtn').classList.remove('listening');
                 document.getElementById('voiceBtn').textContent = language === 'hi' ? '🎤 बोलें' : '🎤 Tap to Speak';
-                document.getElementById('itemInput').focus();
             };
         }
 
-        // ============ LANGUAGE ============
+        // ============ LANGUAGE SYSTEM - FIX 4 ============
         function setLanguage(lang) {
             language = lang;
+            
+            // Update language buttons
             document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
+            
+            // Update recognition language
+            if (recognition) {
+                if (lang === 'hi') {
+                    recognition.language = 'hi-IN';
+                } else {
+                    recognition.language = 'en-IN';
+                }
+            }
+            
+            // Update all text labels - FIX 5
+            updateLabels();
+            
+            showMessage(lang === 'hi' ? '✓ भाषा बदल दी गई' : '✓ Language changed', 'success');
+        }
 
-            if (lang === 'hi') {
-                document.getElementById('voiceHint').textContent = 'कहें: "2 मैगी 10" (मात्रा, आइटम, कीमत)';
+        // ============ UPDATE LABELS - FIX 6 ============
+        function updateLabels() {
+            if (language === 'hi') {
+                document.getElementById('voiceTitle').textContent = '🎤 वॉइस इनपुट';
+                document.getElementById('voiceHint').textContent = 'कहें: "2 मैगी 10" (मात्रा, वस्तु, कीमत)';
+                document.getElementById('typeTitle').textContent = '⌨️ वस्तु टाइप करें';
+                document.getElementById('cartTitle').textContent = '🛒 कार्ट में वस्तुएं';
+                document.getElementById('itemsLabel').textContent = 'वस्तुएं:';
+                document.getElementById('qtyLabel').textContent = 'कुल मात्रा:';
+                document.getElementById('totalLabel').textContent = 'कुल:';
+                document.getElementById('ledgerTitle').textContent = '📊 आज की बिक्री';
+                document.getElementById('totalSalesLabel').textContent = 'कुल:';
                 document.getElementById('itemInput').placeholder = 'वस्तु का नाम';
                 document.getElementById('qtyInput').placeholder = 'मात्रा';
                 document.getElementById('priceInput').placeholder = 'कीमत (₹)';
                 document.getElementById('customerName').placeholder = 'ग्राहक का नाम (वैकल्पिक)';
-                if (recognition) recognition.language = 'hi-IN';
+                document.getElementById('voiceBtn').textContent = '🎤 बोलें';
             } else {
+                document.getElementById('voiceTitle').textContent = '🎤 Voice Input';
                 document.getElementById('voiceHint').textContent = 'Say: "2 maggi 10" (qty, item, price)';
+                document.getElementById('typeTitle').textContent = '⌨️ Type Item';
+                document.getElementById('cartTitle').textContent = '🛒 Items in Cart';
+                document.getElementById('itemsLabel').textContent = 'Items:';
+                document.getElementById('qtyLabel').textContent = 'Total Qty:';
+                document.getElementById('totalLabel').textContent = 'TOTAL:';
+                document.getElementById('ledgerTitle').textContent = '📊 Today\'s Sales';
+                document.getElementById('totalSalesLabel').textContent = 'TOTAL:';
                 document.getElementById('itemInput').placeholder = 'Item name';
                 document.getElementById('qtyInput').placeholder = 'Qty';
                 document.getElementById('priceInput').placeholder = 'Price (₹)';
                 document.getElementById('customerName').placeholder = 'Customer name (optional)';
-                if (recognition) recognition.language = 'en-IN';
+                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
             }
         }
 
-        // ============ VOICE INPUT ============
-        function startVoice() {
-            if (recognition && !listening) {
-                document.getElementById('manualSection').style.display = 'none';
-                document.getElementById('voiceSection').style.display = 'block';
+        // ============ VOICE INPUT PARSING - FIX 7 ============
+        function parseVoiceInput(transcript) {
+            // Convert to lowercase
+            transcript = transcript.toLowerCase();
+            
+            // Split by spaces
+            const parts = transcript.split(/\s+/);
+            
+            let qty = 1;
+            let itemName = '';
+            let price = 0;
+            
+            // Extract numbers and text
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                const num = parseFloat(part);
+                
+                if (!isNaN(num)) {
+                    if (qty === 1 && i === 0) {
+                        // First number = quantity
+                        qty = Math.max(1, Math.floor(num));
+                    } else if (price === 0 && i === parts.length - 1) {
+                        // Last number = price
+                        price = num;
+                    } else if (price === 0) {
+                        // Middle number = price
+                        price = num;
+                    }
+                } else {
+                    // Non-numeric = item name
+                    itemName += part + ' ';
+                }
+            }
+            
+            itemName = itemName.trim();
+            
+            if (itemName) {
+                // Auto-fill the form
+                document.getElementById('itemInput').value = itemName.charAt(0).toUpperCase() + itemName.slice(1);
+                document.getElementById('qtyInput').value = qty;
+                if (price > 0) document.getElementById('priceInput').value = price;
+                
+                showMessage(`✓ ${qty}× ${itemName} @ ₹${price}`, 'success');
+            }
+        }
+
+        // ============ VOICE CONTROL - FIX 8 ============
+        function startVoiceInput() {
+            if (!recognition) {
+                showMessage(language === 'hi' ? 'आपके ब्राउज़र में वॉइस काम नहीं करता' : 'Voice not supported in your browser', 'error');
+                return;
+            }
+            
+            if (listening) {
+                recognition.stop();
+            } else {
+                document.getElementById('voiceResult').style.display = 'none';
                 recognition.start();
             }
         }
 
-        // ============ TOGGLE MANUAL ENTRY ============
-        function toggleManualEntry() {
+        // ============ UI TOGGLES ============
+        function toggleVoice() {
+            const voiceSection = document.getElementById('voiceSection');
+            const manualSection = document.getElementById('manualSection');
+            
+            if (voiceSection.style.display === 'none') {
+                voiceSection.style.display = 'block';
+                manualSection.style.display = 'none';
+            } else {
+                voiceSection.style.display = 'none';
+            }
+        }
+
+        function toggleManual() {
             const manualSection = document.getElementById('manualSection');
             const voiceSection = document.getElementById('voiceSection');
+            
             if (manualSection.style.display === 'none') {
                 manualSection.style.display = 'block';
                 voiceSection.style.display = 'none';
@@ -455,88 +564,6 @@
             } else {
                 manualSection.style.display = 'none';
             }
-        }
-
-        // ============ CAMERA & SCANNER ============
-        async function toggleScanner(type) {
-            if (type === 'item') {
-                const section = document.getElementById('scanItemSection');
-                if (section.classList.contains('show')) {
-                    section.classList.remove('show');
-                    stopCamera('scanner');
-                } else {
-                    document.getElementById('manualSection').style.display = 'none';
-                    document.getElementById('voiceSection').style.display = 'none';
-                    section.classList.add('show');
-                    startCamera('scanner', 'item');
-                }
-            } else if (type === 'price') {
-                const section = document.getElementById('scanPriceSection');
-                if (section.classList.contains('show')) {
-                    section.classList.remove('show');
-                    stopCamera('priceScanner');
-                } else {
-                    section.classList.add('show');
-                    startCamera('priceScanner', 'price');
-                }
-            }
-        }
-
-        async function startCamera(videoId, type) {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                const video = document.getElementById(videoId);
-                video.srcObject = stream;
-                
-                // Simple barcode detection (reads QR codes)
-                let detectionStarted = false;
-                video.onplay = () => {
-                    if (!detectionStarted) {
-                        detectionStarted = true;
-                        scanQRCode(video, type);
-                    }
-                };
-            } catch (err) {
-                showStatus('Camera access denied', 'error');
-            }
-        }
-
-        function stopCamera(videoId) {
-            const video = document.getElementById(videoId);
-            if (video.srcObject) {
-                video.srcObject.getTracks().forEach(track => track.stop());
-            }
-        }
-
-        function scanQRCode(video, type) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            const scan = () => {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    ctx.drawImage(video, 0, 0);
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height);
-                    
-                    if (code) {
-                        if (type === 'item') {
-                            document.getElementById('itemInput').value = code.data;
-                            toggleScanner('item');
-                        } else if (type === 'price') {
-                            const price = parseFloat(code.data);
-                            if (!isNaN(price)) {
-                                document.getElementById('priceInput').value = price.toFixed(2);
-                                toggleScanner('price');
-                            }
-                        }
-                        return;
-                    }
-                }
-                requestAnimationFrame(scan);
-            };
-            scan();
         }
 
         // ============ ADD ITEM ============
@@ -550,7 +577,7 @@
             const price = parseFloat(priceInput.value) || 0;
 
             if (!itemName) {
-                showStatus(language === 'hi' ? 'वस्तु का नाम दर्ज करें' : 'Enter item name', 'error');
+                showMessage(language === 'hi' ? 'वस्तु का नाम दर्ज करें' : 'Enter item name', 'error');
                 return;
             }
 
@@ -568,7 +595,7 @@
             itemInput.focus();
 
             updateUI();
-            showStatus(`✓ ${qty}× ${itemName} @ ₹${price} added`, 'success');
+            showMessage(`✓ ${qty}× ${itemName} @ ₹${price} added`, 'success');
         }
 
         function removeItem(id) {
@@ -604,18 +631,18 @@
         }
 
         function clearCart() {
-            if (confirm(language === 'hi' ? 'सभी आइटम को साफ़ करें?' : 'Clear all items?')) {
+            if (confirm(language === 'hi' ? 'सभी वस्तुओं को साफ़ करें?' : 'Clear all items?')) {
                 cart = [];
                 document.getElementById('customerName').value = '';
                 updateUI();
-                showStatus(language === 'hi' ? 'कार्ट साफ़ किया गया' : 'Cart cleared', 'error');
+                showMessage(language === 'hi' ? 'कार्ट साफ़ किया गया' : 'Cart cleared', 'error');
             }
         }
 
         // ============ COMPLETE SALE ============
         async function completeSale() {
             if (cart.length === 0) {
-                showStatus(language === 'hi' ? 'पहले आइटम जोड़ें' : 'Add items first', 'error');
+                showMessage(language === 'hi' ? 'पहले वस्तु जोड़ें' : 'Add items first', 'error');
                 return;
             }
 
@@ -633,13 +660,13 @@
 
             try {
                 await db.ref('transactions/' + transaction.id).set(transaction);
-                showStatus(`✓ ${language === 'hi' ? 'बिक्री पूरी हुई' : 'Sale completed'}! ₹${totalAmount.toFixed(2)}`, 'success');
+                showMessage(`✓ ${language === 'hi' ? 'बिक्री पूरी!' : 'Sale completed'}! ₹${totalAmount.toFixed(2)}`, 'success');
                 cart = [];
                 document.getElementById('customerName').value = '';
                 updateUI();
                 loadTransactions();
             } catch (err) {
-                showStatus('Error: ' + err.message, 'error');
+                showMessage('Error: ' + err.message, 'error');
             }
         }
 
@@ -675,14 +702,16 @@
             if (tab === 'ledger') loadTransactions();
         }
 
-        function showStatus(msg, type) {
+        function showMessage(msg, type = 'info') {
             const el = document.getElementById('status');
             el.textContent = msg;
             el.className = 'status show ' + type;
             setTimeout(() => el.className = 'status', 3000);
         }
 
+        // Init
         loadTransactions();
+        setLanguage('en');
     </script>
 </body>
 </html>
