@@ -1,115 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kirana - Store & Customer</title>
+    <title>Kirana App</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
             padding: 10px;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
         }
         .container {
             width: 100%;
             max-width: 500px;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 16px;
-            max-height: 90vh;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-height: 95vh;
             overflow-y: auto;
         }
         .header {
             text-align: center;
-            margin-bottom: 16px;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
             border-bottom: 2px solid #667eea;
+            padding-bottom: 15px;
         }
-        .header h1 { font-size: 28px; color: #333; margin-bottom: 4px; }
-        .header p { color: #666; font-size: 12px; }
-        
-        .role-selector { 
-            display: flex; 
-            gap: 8px; 
-            margin-bottom: 16px; 
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 5px;
         }
-        .role-btn { 
-            flex: 1; 
-            padding: 12px; 
-            border: 2px solid #ddd; 
-            background: white; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: 600;
-            font-size: 14px;
-            transition: 0.2s;
-        }
-        .role-btn:hover { border-color: #667eea; }
-        .role-btn.active { 
-            border-color: #667eea; 
-            background: #667eea;
-            color: white;
-        }
-        
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            border-bottom: 2px solid #eee;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: transparent;
-            color: #999;
-            border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
+        .header p {
+            color: #666;
             font-size: 13px;
         }
-        .tab-btn:hover { color: #667eea; }
-        .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+        .role-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
         }
-        
-        .tab-content { display: none !important; }
-        .tab-content.active { display: block !important; }
-        
-        .view { display: none; }
-        .view.active { display: block; }
-        
-        .section { margin-bottom: 16px; }
-        .section h2 {
+        .role-btn {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .role-btn:hover {
+            border-color: #667eea;
+        }
+        .role-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        .section {
+            margin-bottom: 18px;
+        }
+        .section-title {
             font-size: 12px;
             color: #667eea;
-            margin-bottom: 8px;
             text-transform: uppercase;
             font-weight: 700;
+            margin-bottom: 10px;
             letter-spacing: 0.5px;
         }
         input, button {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
             font-size: 13px;
             font-family: inherit;
-            width: 100%;
             margin-bottom: 8px;
+            cursor: pointer;
         }
         input {
             border: 2px solid #eee;
+            background: white;
+            color: #333;
         }
         input:focus {
             outline: none;
@@ -119,104 +108,145 @@
         button {
             background: #667eea;
             color: white;
-            border: none;
-            cursor: pointer;
             font-weight: 600;
             transition: 0.2s;
+            border: none;
         }
-        button:hover { background: #5568d3; }
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
         .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; }
         .btn-secondary { background: #f0f0f0; color: #333; }
-        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-secondary:hover { background: #e0e0e0; color: #333; }
         
         .voice-btn {
             background: #10b981;
-            padding: 14px;
-            font-size: 14px;
-            font-weight: 600;
+            padding: 16px;
+            font-size: 15px;
+            font-weight: 700;
         }
         .voice-btn.listening {
             background: #f59e0b;
             animation: pulse 1s infinite;
         }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
         
         .items-list {
             background: #f9f9f9;
-            border-radius: 6px;
-            padding: 8px;
-            max-height: 150px;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 12px;
+            max-height: 200px;
             overflow-y: auto;
         }
-        .item-row {
+        .item-card {
+            background: white;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px;
-            background: white;
-            margin-bottom: 4px;
-            border-radius: 4px;
-            border-left: 3px solid #667eea;
-            font-size: 12px;
+            font-size: 13px;
         }
-        .item-name { flex: 1; font-weight: 500; }
-        .item-qty { background: #eee; padding: 2px 6px; border-radius: 3px; margin: 0 6px; font-size: 11px; }
-        .item-price { color: #667eea; font-weight: 600; min-width: 50px; text-align: right; }
+        .item-info {
+            flex: 1;
+        }
+        .item-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .item-details {
+            font-size: 11px;
+            color: #666;
+            margin-top: 3px;
+        }
+        .item-price {
+            color: #667eea;
+            font-weight: 700;
+            margin-right: 10px;
+            min-width: 50px;
+            text-align: right;
+        }
         .remove-btn {
             background: #fee2e2;
             color: #991b1b;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
             border: none;
-            padding: 2px 6px;
-            border-radius: 3px;
             cursor: pointer;
-            font-size: 11px;
-            margin-left: 4px;
         }
         
-        .summary {
+        .summary-box {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 12px;
-            font-size: 13px;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
         }
         .summary-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
         }
-        .summary-row.total {
-            font-size: 16px;
-            font-weight: 700;
+        .summary-total {
             border-top: 1px solid rgba(255,255,255,0.3);
-            padding-top: 6px;
+            padding-top: 8px;
+            font-size: 18px;
+            font-weight: 700;
         }
         
-        .status {
-            padding: 8px;
-            border-radius: 4px;
+        .tx-list {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .tx-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            border-left: 3px solid #10b981;
             font-size: 12px;
-            margin-bottom: 12px;
+        }
+        .tx-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .tx-items {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 3px;
+        }
+        .tx-time {
+            color: #999;
+            font-size: 10px;
+        }
+        
+        .status-msg {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
             text-align: center;
+            font-size: 12px;
             display: none;
         }
-        .status.show { display: block; }
-        .status.success { background: #d1fae5; color: #065f46; }
-        .status.error { background: #fee2e2; color: #991b1b; }
-        .status.info { background: #dbeafe; color: #0c2d6b; }
-        
-        .row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .row-2 input {
-            margin-bottom: 0;
-        }
+        .status-msg.show { display: block; }
+        .status-success { background: #d1fae5; color: #065f46; }
+        .status-error { background: #fee2e2; color: #991b1b; }
         
         .qr-modal {
             display: none;
@@ -225,217 +255,170 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            z-index: 999;
             align-items: center;
             justify-content: center;
         }
-        .qr-modal.show { display: flex; }
-        .qr-content {
+        .qr-modal.show {
+            display: flex;
+        }
+        .qr-box {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
+            padding: 30px;
+            border-radius: 15px;
             text-align: center;
-            max-width: 400px;
+            max-width: 450px;
             width: 90%;
         }
-        .qr-content h2 { margin-bottom: 16px; color: #333; }
-        .qr-content canvas { margin: 16px 0; }
-        .qr-link { color: #667eea; font-weight: 600; margin: 12px 0; word-break: break-all; font-size: 11px; }
+        .qr-box h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .qr-box canvas {
+            margin: 15px 0;
+            max-width: 100%;
+        }
+        .qr-link {
+            color: #667eea;
+            font-size: 11px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
         
-        .transactions {
-            background: #f9f9f9;
-            border-radius: 6px;
-            padding: 8px;
-            max-height: 300px;
-            overflow-y: auto;
+        .empty {
+            text-align: center;
+            padding: 30px 20px;
+            color: #999;
         }
-        .transaction-item {
-            background: white;
-            padding: 8px;
-            margin-bottom: 6px;
-            border-radius: 4px;
-            border-left: 3px solid #10b981;
-            font-size: 12px;
-        }
-        .transaction-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-        .transaction-time { color: #999; font-size: 10px; }
         
-        .spending-card {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border-left: 4px solid #10b981;
-            cursor: pointer;
-            transition: 0.2s;
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
-        .spending-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .spending-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; }
-        .spending-items { color: #666; font-size: 11px; }
-        
-        .empty-state { text-align: center; padding: 40px 20px; color: #999; }
-        .permission-alert {
-            background: #fef3c7;
-            border: 1px solid #fcd34d;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            font-size: 12px;
-            display: none;
+        .row-2 input, .row-2 button {
+            margin-bottom: 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- HEADER -->
         <div class="header">
             <h1>🏪 Kirana</h1>
             <p>Store Ledger & Customer Tracker</p>
         </div>
 
-        <div id="status" class="status"></div>
+        <!-- STATUS MESSAGE -->
+        <div id="statusMsg" class="status-msg"></div>
 
-        <!-- ROLE SELECTOR - BUG FIX #1: Always visible, properly structured -->
-        <div class="role-selector">
-            <button class="role-btn active" id="storeRoleBtn" onclick="switchRole('store')">🏬 Store</button>
-            <button class="role-btn" id="customerRoleBtn" onclick="switchRole('customer')">👤 Customer</button>
+        <!-- ROLE SELECTOR -->
+        <div class="role-buttons">
+            <button class="role-btn active" id="storeRoleBtn">🏬 Store</button>
+            <button class="role-btn" id="customerRoleBtn">👤 Customer</button>
         </div>
 
-        <!-- STORE OWNER VIEW - BUG FIX #2: Starts visible with display: block -->
+        <!-- ==================== STORE VIEW ==================== -->
         <div id="storeView" class="view active">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchStoreTab('entry')">📝 Entry</button>
-                <button class="tab-btn" onclick="switchStoreTab('ledger')">📊 Ledger</button>
+            <!-- ENTRY SECTION -->
+            <div class="section">
+                <div class="section-title">🎤 Voice Entry</div>
+                <button class="voice-btn" id="voiceBtn">🎤 Tap to Speak</button>
+                <p style="font-size: 11px; color: #999; margin-top: 8px;">Say: "2 maggi 10" (qty item price)</p>
             </div>
 
-            <!-- STORE ENTRY TAB -->
-            <div id="storeEntry" class="tab-content active">
-                <div id="permissionAlert" class="permission-alert">
-                    ⚠️ Microphone permission needed. Click "Allow" when browser asks.
+            <!-- MANUAL ENTRY -->
+            <div class="section">
+                <div class="section-title">⌨️ Manual Entry</div>
+                <div class="row-2">
+                    <input type="text" id="itemName" placeholder="Item">
+                    <input type="number" id="itemQty" placeholder="Qty" value="1" min="1">
                 </div>
-
-                <div class="section">
-                    <h2>🎤 Voice Input</h2>
-                    <button class="voice-btn" id="voiceBtn" onclick="requestMicAndSpeak()">
-                        🎤 Tap to Speak
-                    </button>
-                    <p style="font-size: 11px; color: #999; margin-top: 4px;">Say: "2 maggi 10" (qty, item, price)</p>
-                </div>
-
-                <div class="section">
-                    <h2>⌨️ Or Type</h2>
-                    <div class="row-2">
-                        <input type="text" id="itemInput" placeholder="Item name">
-                        <input type="number" id="qtyInput" placeholder="Qty" value="1" min="1">
-                    </div>
-                    <input type="number" id="priceInput" placeholder="Price (₹)" step="0.01" min="0">
-                    <button onclick="addItem()">+ Add Item</button>
-                </div>
-
-                <div id="itemsSection" style="display: none;">
-                    <div class="section">
-                        <h2>🛒 Items</h2>
-                        <div class="items-list" id="itemsList"></div>
-                    </div>
-                </div>
-
-                <div class="summary">
-                    <div class="summary-row">
-                        <span>Items:</span>
-                        <span id="itemCount">0</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Total Qty:</span>
-                        <span id="totalQty">0</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span>TOTAL:</span>
-                        <span id="totalAmount">₹0</span>
-                    </div>
-                </div>
-
-                <input type="text" id="customerName" placeholder="Customer name (optional)">
-                <button class="btn-success" onclick="completeSale()">✓ Complete Sale</button>
-                <button class="btn-secondary" onclick="clearCart()" style="margin-top: 4px;">Clear</button>
+                <input type="number" id="itemPrice" placeholder="Price (₹)" step="0.01" min="0">
+                <button onclick="addItem()">+ Add Item</button>
             </div>
 
-            <!-- STORE LEDGER TAB -->
-            <div id="storeLedger" class="tab-content">
+            <!-- ITEMS CART -->
+            <div id="cartSection" style="display: none;">
                 <div class="section">
-                    <h2>📊 Today's Sales</h2>
-                    <div class="summary">
-                        <div class="summary-row total">
-                            <span>TOTAL:</span>
-                            <span id="todayTotal">₹0</span>
-                        </div>
-                    </div>
-                    <div class="transactions" id="transactionsList"></div>
+                    <div class="section-title">🛒 Cart Items</div>
+                    <div class="items-list" id="itemsList"></div>
                 </div>
+            </div>
+
+            <!-- SUMMARY -->
+            <div class="summary-box">
+                <div class="summary-row">
+                    <span>Items:</span>
+                    <span id="itemCountDisplay">0</span>
+                </div>
+                <div class="summary-row">
+                    <span>Total Qty:</span>
+                    <span id="totalQtyDisplay">0</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>TOTAL:</span>
+                    <span id="totalAmountDisplay">₹0</span>
+                </div>
+            </div>
+
+            <!-- CUSTOMER NAME & CHECKOUT -->
+            <input type="text" id="customerName" placeholder="Customer name (optional)">
+            <button class="btn-success" onclick="completeSale()">✓ Complete Sale</button>
+            <button class="btn-secondary" onclick="clearCart()" style="margin-top: 6px;">Clear Cart</button>
+
+            <!-- LEDGER -->
+            <div class="section" style="margin-top: 20px;">
+                <div class="section-title">📊 Today's Ledger</div>
+                <div class="summary-box">
+                    <div class="summary-row summary-total">
+                        <span>Total Sales:</span>
+                        <span id="todaySalesDisplay">₹0</span>
+                    </div>
+                </div>
+                <div class="tx-list" id="txList"></div>
             </div>
         </div>
 
-        <!-- CUSTOMER VIEW - BUG FIX #2: Starts hidden with display: none -->
+        <!-- ==================== CUSTOMER VIEW ==================== -->
         <div id="customerView" class="view">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="switchCustomerTab('receipts')">📜 Receipts</button>
-                <button class="tab-btn" onclick="switchCustomerTab('spending')">💰 Spending</button>
+            <!-- RECEIPT VIEW -->
+            <div class="section">
+                <div class="section-title">📜 View Receipt</div>
+                <input type="text" id="receiptCode" placeholder="Enter receipt code or paste QR link">
+                <button onclick="viewReceipt()">View Receipt</button>
             </div>
 
-            <!-- CUSTOMER RECEIPTS TAB -->
-            <div id="customerReceipts" class="tab-content active">
-                <div class="section">
-                    <h2>📜 Your Receipts</h2>
-                    <input type="text" id="customerCode" placeholder="Enter receipt code or paste QR link">
-                    <button onclick="loadCustomerReceipt()">View Receipt</button>
-                </div>
-
-                <div id="receiptDetail" style="display: none; margin-top: 16px;">
-                    <div class="spending-card">
-                        <div class="spending-header">
-                            <span id="receiptStoreName">Store</span>
-                            <span id="receiptAmount" style="color: #667eea;">₹0</span>
-                        </div>
-                        <div id="receiptItems" class="spending-items"></div>
-                        <div style="color: #999; font-size: 10px; margin-top: 6px;" id="receiptTime"></div>
-                    </div>
-
-                    <div class="section" style="background: #f0f7ff; padding: 12px; border-radius: 8px; margin-top: 12px;">
-                        <h2 style="color: #0284c7; margin-bottom: 8px;">💳 Payment</h2>
-                        <button class="btn-success" onclick="generatePaymentLink()">Pay via UPI</button>
-                        <p style="font-size: 10px; color: #666; margin-top: 8px; text-align: center;">
-                            Or pay the store directly
-                        </p>
+            <div id="receiptDisplay" style="display: none;">
+                <div class="summary-box">
+                    <div class="summary-row">
+                        <span id="rxStoreName">Store</span>
+                        <span id="rxAmount" style="color: #fff;">₹0</span>
                     </div>
                 </div>
-
-                <div id="recentReceipts" style="margin-top: 16px;"></div>
+                <div id="rxItems" class="section"></div>
+                <div style="color: #999; font-size: 11px; margin-bottom: 15px;" id="rxTime"></div>
+                <button class="btn-success" onclick="payNow()">💳 Pay Now</button>
             </div>
 
-            <!-- CUSTOMER SPENDING TAB -->
-            <div id="customerSpending" class="tab-content">
-                <div class="section">
-                    <h2>💰 Your Spending</h2>
-                    <input type="text" id="spendingCode" placeholder="Enter your customer name">
-                    <button onclick="loadCustomerSpending()">Load Spending</button>
-                </div>
-
-                <div id="spendingSummary"></div>
+            <!-- SPENDING TRACKER -->
+            <div class="section" style="margin-top: 20px;">
+                <div class="section-title">💰 Your Spending</div>
+                <input type="text" id="spendingName" placeholder="Enter your name">
+                <button onclick="viewSpending()">Load Spending</button>
             </div>
+            <div id="spendingDisplay" class="section"></div>
         </div>
     </div>
 
     <!-- QR CODE MODAL -->
     <div id="qrModal" class="qr-modal">
-        <div class="qr-content">
+        <div class="qr-box">
             <h2>✓ Sale Complete!</h2>
-            <p>Share this QR code with customer:</p>
-            <div id="qrCode" style="text-align: center; margin: 12px 0;"></div>
-            <div class="qr-link" id="qrLink"></div>
+            <p>Share this QR with customer:</p>
+            <div id="qrCodeContainer"></div>
+            <div class="qr-link" id="qrCodeLink"></div>
             <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">📥 Download QR</button>
             <button class="btn-secondary" onclick="closeQR()">Close</button>
         </div>
@@ -456,211 +439,110 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const auth = firebase.auth();
-        auth.signInAnonymously().catch(err => console.log('Auth:', err.message));
+        auth.signInAnonymously();
 
-        // ============ STATE ============
+        // ============ GLOBAL STATE ============
         let cart = [];
-        let currentRole = 'store';
         let recognition = null;
+        let isListening = false;
 
+        // ============ SETUP VOICE ============
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
             recognition.language = 'en-IN';
             recognition.continuous = false;
-            recognition.interimResults = true;
-
-            recognition.onstart = () => {
+            
+            recognition.onstart = function() {
+                isListening = true;
                 document.getElementById('voiceBtn').classList.add('listening');
                 document.getElementById('voiceBtn').textContent = '🔴 Listening...';
             };
-
-            recognition.onresult = (event) => {
+            
+            recognition.onresult = function(event) {
                 let transcript = '';
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
+                    transcript += event.results[i][0].transcript + ' ';
                 }
-                transcript = transcript.trim();
-                
-                if (transcript) {
-                    parseAndAddItem(transcript);
-                }
+                handleVoiceInput(transcript);
             };
-
-            recognition.onerror = (event) => {
-                console.error('Speech error:', event.error);
-                if (event.error === 'not-allowed') {
-                    document.getElementById('permissionAlert').style.display = 'block';
-                    showMessage('Microphone permission denied', 'error');
-                } else {
-                    showMessage('Voice error: ' + event.error, 'error');
-                }
-                endVoiceSession();
+            
+            recognition.onend = function() {
+                isListening = false;
+                document.getElementById('voiceBtn').classList.remove('listening');
+                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
             };
-
-            recognition.onend = () => {
-                endVoiceSession();
+            
+            recognition.onerror = function(event) {
+                showStatus('Voice error: ' + event.error, 'error');
+                document.getElementById('voiceBtn').classList.remove('listening');
+                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
             };
         }
 
-        // ============ MICROPHONE PERMISSION - BUG FIX #3 ============
-        async function requestMicAndSpeak() {
+        // ============ VOICE CONTROL ============
+        document.getElementById('voiceBtn').addEventListener('click', function() {
             if (!recognition) {
-                showMessage('Voice not supported in your browser', 'error');
+                showStatus('Voice not supported', 'error');
                 return;
             }
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(track => track.stop());
-                
-                document.getElementById('permissionAlert').style.display = 'none';
+            if (!isListening) {
                 recognition.start();
-            } catch (err) {
-                if (err.name === 'NotAllowedError') {
-                    showMessage('Please allow microphone access', 'error');
-                    document.getElementById('permissionAlert').style.display = 'block';
-                } else {
-                    showMessage('Microphone error: ' + err.message, 'error');
-                }
             }
-        }
+        });
 
-        function endVoiceSession() {
-            document.getElementById('voiceBtn').classList.remove('listening');
-            document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
-        }
-
-        // ============ PARSE VOICE INPUT ============
-        function parseAndAddItem(transcript) {
-            transcript = transcript.toLowerCase().trim();
-            const parts = transcript.split(/\s+/);
+        function handleVoiceInput(text) {
+            text = text.toLowerCase().trim();
+            const parts = text.split(/\s+/);
             
-            let qty = 1;
-            let itemName = '';
-            let price = 0;
+            let qty = 1, item = '', price = 0;
             
             for (let i = 0; i < parts.length; i++) {
-                const part = parts[i];
-                const num = parseFloat(part);
-                
+                const num = parseFloat(parts[i]);
                 if (!isNaN(num)) {
-                    if (qty === 1 && i === 0) {
-                        qty = Math.max(1, Math.floor(num));
-                    } else if (price === 0) {
-                        price = num;
-                    }
+                    if (qty === 1 && i === 0) qty = Math.max(1, Math.floor(num));
+                    else if (price === 0) price = num;
                 } else {
-                    itemName += part + ' ';
+                    item += parts[i] + ' ';
                 }
             }
             
-            itemName = itemName.trim();
-            
-            if (itemName) {
-                document.getElementById('itemInput').value = itemName.charAt(0).toUpperCase() + itemName.slice(1);
-                document.getElementById('qtyInput').value = qty;
-                if (price > 0) document.getElementById('priceInput').value = price.toFixed(2);
-                
+            item = item.trim();
+            if (item) {
+                document.getElementById('itemName').value = item.charAt(0).toUpperCase() + item.slice(1);
+                document.getElementById('itemQty').value = qty;
+                if (price > 0) document.getElementById('itemPrice').value = price.toFixed(2);
                 addItem();
             }
         }
 
-        // ============ ROLE SWITCHING - BUG FIX #4 ============
-        function switchRole(role) {
-            currentRole = role;
-            
-            // Update button states
-            const storeBtn = document.getElementById('storeRoleBtn');
-            const customerBtn = document.getElementById('customerRoleBtn');
-            
-            if (role === 'store') {
-                storeBtn.classList.add('active');
-                customerBtn.classList.remove('active');
-                document.getElementById('storeView').classList.add('active');
-                document.getElementById('customerView').classList.remove('active');
-                loadTransactions();
-            } else {
-                storeBtn.classList.remove('active');
-                customerBtn.classList.add('active');
-                document.getElementById('storeView').classList.remove('active');
-                document.getElementById('customerView').classList.add('active');
-                loadRecentReceipts();
-            }
-        }
-
-        // ============ STORE TABS - BUG FIX #5 ============
-        function switchStoreTab(tab) {
-            document.querySelectorAll('#storeEntry, #storeLedger').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            document.getElementById('store' + (tab === 'entry' ? 'Entry' : 'Ledger')).classList.add('active');
-            event.target.classList.add('active');
-            
-            if (tab === 'ledger') loadTransactions();
-        }
-
-        // ============ CUSTOMER TABS ============
-        function switchCustomerTab(tab) {
-            document.querySelectorAll('#customerReceipts, #customerSpending').forEach(el => {
-                el.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            const tabName = tab === 'receipts' ? 'Receipts' : 'Spending';
-            document.getElementById('customer' + tabName).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        // ============ ADD ITEM ============
+        // ============ CART FUNCTIONS ============
         function addItem() {
-            const itemInput = document.getElementById('itemInput');
-            const qtyInput = document.getElementById('qtyInput');
-            const priceInput = document.getElementById('priceInput');
+            const name = document.getElementById('itemName').value.trim();
+            const qty = parseInt(document.getElementById('itemQty').value) || 1;
+            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
 
-            const itemName = itemInput.value.trim();
-            const qty = parseInt(qtyInput.value) || 1;
-            const price = parseFloat(priceInput.value) || 0;
-
-            if (!itemName) {
-                showMessage('Enter item name', 'error');
+            if (!name) {
+                showStatus('Enter item name', 'error');
                 return;
             }
 
-            cart.push({
-                id: Date.now(),
-                name: itemName,
-                qty: qty,
-                price: price,
-                total: qty * price
-            });
-
-            itemInput.value = '';
-            qtyInput.value = '1';
-            priceInput.value = '';
-            itemInput.focus();
-
-            updateUI();
-            showMessage(`✓ ${qty}× ${itemName} added`, 'success');
+            cart.push({ id: Date.now(), name, qty, price, total: qty * price });
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '1';
+            document.getElementById('itemPrice').value = '';
+            updateCart();
+            showStatus(`✓ Added: ${qty}× ${name}`, 'success');
         }
 
         function removeItem(id) {
             cart = cart.filter(item => item.id !== id);
-            updateUI();
+            updateCart();
         }
 
-        function updateUI() {
-            const section = document.getElementById('itemsSection');
+        function updateCart() {
             const list = document.getElementById('itemsList');
+            const section = document.getElementById('cartSection');
 
             if (cart.length === 0) {
                 section.style.display = 'none';
@@ -669,59 +551,59 @@
 
             section.style.display = 'block';
             list.innerHTML = cart.map(item => `
-                <div class="item-row">
-                    <div class="item-name">${item.name}</div>
-                    <div class="item-qty">×${item.qty}</div>
+                <div class="item-card">
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-details">×${item.qty} @ ₹${item.price.toFixed(2)}</div>
+                    </div>
                     <div class="item-price">₹${item.total.toFixed(2)}</div>
                     <button class="remove-btn" onclick="removeItem(${item.id})">✕</button>
                 </div>
             `).join('');
 
-            const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
-            const totalAmount = cart.reduce((sum, item) => sum + item.total, 0);
+            const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+            const totalAmt = cart.reduce((s, i) => s + i.total, 0);
 
-            document.getElementById('itemCount').textContent = cart.length;
-            document.getElementById('totalQty').textContent = totalQty;
-            document.getElementById('totalAmount').textContent = '₹' + totalAmount.toFixed(2);
+            document.getElementById('itemCountDisplay').textContent = cart.length;
+            document.getElementById('totalQtyDisplay').textContent = totalQty;
+            document.getElementById('totalAmountDisplay').textContent = '₹' + totalAmt.toFixed(2);
         }
 
         function clearCart() {
             if (confirm('Clear all items?')) {
                 cart = [];
                 document.getElementById('customerName').value = '';
-                updateUI();
+                updateCart();
             }
         }
 
-        // ============ COMPLETE SALE & GENERATE QR ============
+        // ============ COMPLETE SALE ============
         async function completeSale() {
             if (cart.length === 0) {
-                showMessage('Add items first', 'error');
+                showStatus('Add items first', 'error');
                 return;
             }
 
-            const customerName = document.getElementById('customerName').value || 'Walk-in';
-            const totalAmount = cart.reduce((sum, item) => sum + item.total, 0);
+            const cName = document.getElementById('customerName').value || 'Walk-in';
+            const total = cart.reduce((s, i) => s + i.total, 0);
             const txId = Date.now().toString();
 
-            const transaction = {
-                id: txId,
-                customerName: customerName,
-                items: cart,
-                totalAmount: totalAmount,
-                timestamp: new Date().toLocaleString('en-IN'),
-                date: new Date().toISOString().split('T')[0]
-            };
-
             try {
-                await db.ref('transactions/' + txId).set(transaction);
+                await db.ref('transactions/' + txId).set({
+                    id: txId,
+                    customerName: cName,
+                    items: cart,
+                    totalAmount: total,
+                    timestamp: new Date().toLocaleString('en-IN'),
+                    date: new Date().toISOString().split('T')[0]
+                });
+
+                const link = window.location.origin + '?rx=' + txId;
+                document.getElementById('qrCodeLink').textContent = link;
+                document.getElementById('qrCodeContainer').innerHTML = '';
                 
-                const customerLink = `${window.location.origin}?receipt=${txId}`;
-                document.getElementById('qrLink').textContent = customerLink;
-                
-                document.getElementById('qrCode').innerHTML = '';
-                new QRCode(document.getElementById('qrCode'), {
-                    text: customerLink,
+                new QRCode(document.getElementById('qrCodeContainer'), {
+                    text: link,
                     width: 200,
                     height: 200,
                     colorDark: '#667eea',
@@ -729,15 +611,13 @@
                 });
 
                 document.getElementById('qrModal').classList.add('show');
-                
                 cart = [];
                 document.getElementById('customerName').value = '';
-                updateUI();
-                loadTransactions();
-                
-                showMessage('✓ Sale completed!', 'success');
+                updateCart();
+                loadLedger();
+                showStatus('Sale complete!', 'success');
             } catch (err) {
-                showMessage('Error: ' + err.message, 'error');
+                showStatus('Error: ' + err.message, 'error');
             }
         }
 
@@ -746,180 +626,27 @@
         }
 
         function downloadQR() {
-            const canvas = document.querySelector('#qrCode canvas');
+            const canvas = document.querySelector('#qrCodeContainer canvas');
             const link = document.createElement('a');
             link.href = canvas.toDataURL();
-            link.download = 'receipt-qr.png';
+            link.download = 'receipt.png';
             link.click();
         }
 
-        // ============ LOAD TRANSACTIONS ============
-        function loadTransactions() {
+        // ============ LEDGER ============
+        function loadLedger() {
             const today = new Date().toISOString().split('T')[0];
-            db.ref('transactions').on('value', (snapshot) => {
+            db.ref('transactions').on('value', snapshot => {
                 const data = snapshot.val();
-                const txArray = data ? Object.values(data).filter(tx => tx.date === today).reverse() : [];
+                const txs = data ? Object.values(data).filter(tx => tx.date === today).reverse() : [];
 
-                document.getElementById('transactionsList').innerHTML = txArray.length > 0
-                    ? txArray.map(tx => `
-                        <div class="transaction-item">
-                            <div class="transaction-header">
-                                <span>${tx.customerName}</span>
-                                <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
-                            </div>
-                            <div style="color: #666; font-size: 11px;">${tx.items.map(item => `${item.qty}× ${item.name}`).join(', ')}</div>
-                            <div class="transaction-time">${tx.timestamp}</div>
+                document.getElementById('txList').innerHTML = txs.length > 0 ? txs.map(tx => `
+                    <div class="tx-item">
+                        <div class="tx-header">
+                            <span>${tx.customerName}</span>
+                            <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
                         </div>
-                    `).join('')
-                    : '<div class="empty-state">No transactions today</div>';
-
-                const todayTotal = txArray.reduce((sum, tx) => sum + tx.totalAmount, 0);
-                document.getElementById('todayTotal').textContent = '₹' + todayTotal.toFixed(2);
-            });
-        }
-
-        // ============ CUSTOMER FEATURES ============
-        async function loadCustomerReceipt() {
-            const code = document.getElementById('customerCode').value.trim();
-            
-            if (!code) {
-                showMessage('Enter receipt code', 'error');
-                return;
-            }
-
-            const txId = code.includes('receipt=') ? code.split('receipt=')[1] : code;
-
-            try {
-                const snapshot = await db.ref(`transactions/${txId}`).get();
-                
-                if (!snapshot.exists()) {
-                    showMessage('Receipt not found', 'error');
-                    return;
-                }
-
-                const tx = snapshot.val();
-                document.getElementById('receiptStoreName').textContent = tx.customerName;
-                document.getElementById('receiptAmount').textContent = '₹' + tx.totalAmount.toFixed(2);
-                document.getElementById('receiptItems').innerHTML = tx.items.map(item => 
-                    `<div>• ${item.qty}× ${item.name} = ₹${item.total.toFixed(2)}</div>`
-                ).join('');
-                document.getElementById('receiptTime').textContent = tx.timestamp;
-                document.getElementById('receiptDetail').style.display = 'block';
-            } catch (err) {
-                showMessage('Error: ' + err.message, 'error');
-            }
-        }
-
-        function generatePaymentLink() {
-            const amount = document.getElementById('receiptAmount').textContent.replace('₹', '');
-            const upiLink = `upi://pay?pa=9999999999@paytm&pn=KiranaStore&am=${amount}&tn=Receipt`;
-            window.open(upiLink);
-        }
-
-        async function loadRecentReceipts() {
-            db.ref('transactions').limitToLast(10).on('value', (snapshot) => {
-                const data = snapshot.val();
-                const txArray = data ? Object.values(data).reverse() : [];
-
-                document.getElementById('recentReceipts').innerHTML = txArray.length > 0 
-                    ? `<div class="section"><h2>Recent Receipts</h2>` + txArray.slice(0, 5).map(tx => `
-                        <div class="spending-card" onclick="loadReceiptFromCard('${tx.id}')">
-                            <div class="spending-header">
-                                <span>${tx.customerName}</span>
-                                <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
-                            </div>
-                            <div style="color: #999; font-size: 10px;">${tx.timestamp}</div>
-                        </div>
-                    `).join('') + `</div>`
-                    : '';
-            });
-        }
-
-        function loadReceiptFromCard(txId) {
-            document.getElementById('customerCode').value = txId;
-            loadCustomerReceipt();
-        }
-
-        async function loadCustomerSpending() {
-            const code = document.getElementById('spendingCode').value.trim();
-            
-            if (!code) {
-                showMessage('Enter customer name', 'error');
-                return;
-            }
-
-            try {
-                const snapshot = await db.ref('transactions').get();
-                const data = snapshot.val();
-                
-                if (!data) {
-                    showMessage('No data found', 'error');
-                    return;
-                }
-
-                const txArray = Object.values(data).filter(tx => 
-                    tx.customerName.toLowerCase() === code.toLowerCase()
-                );
-
-                if (txArray.length === 0) {
-                    showMessage('No transactions found', 'error');
-                    return;
-                }
-
-                const monthlyData = {};
-                txArray.forEach(tx => {
-                    const month = tx.date.substring(0, 7);
-                    if (!monthlyData[month]) monthlyData[month] = { total: 0, items: [] };
-                    monthlyData[month].total += tx.totalAmount;
-                    monthlyData[month].items.push(...tx.items);
-                });
-
-                document.getElementById('spendingSummary').innerHTML = `
-                    <div class="section">
-                        <div class="spending-card">
-                            <div class="spending-header">
-                                <span>Total Spent:</span>
-                                <span style="color: #667eea;">₹${txArray.reduce((s, t) => s + t.totalAmount, 0).toFixed(2)}</span>
-                            </div>
-                        </div>
-
-                        ${Object.entries(monthlyData).reverse().map(([month, data]) => `
-                            <div class="spending-card">
-                                <div class="spending-header">
-                                    <span>${month}</span>
-                                    <span style="color: #667eea;">₹${data.total.toFixed(2)}</span>
-                                </div>
-                                <div class="spending-items">${data.items.slice(0, 3).map(i => `• ${i.qty}× ${i.name}`).join(' | ')}</div>
-                            </div>
-                        `).join('')}
+                        <div class="tx-items">${tx.items.map(i => i.qty + '× ' + i.name).join(', ')}</div>
+                        <div class="tx-time">${tx.timestamp}</div>
                     </div>
-                `;
-            } catch (err) {
-                showMessage('Error: ' + err.message, 'error');
-            }
-        }
-
-        // ============ UI UTILITIES ============
-        function showMessage(msg, type = 'info') {
-            const el = document.getElementById('status');
-            el.textContent = msg;
-            el.className = 'status show ' + type;
-            setTimeout(() => el.className = 'status', 3000);
-        }
-
-        // ============ INIT ============
-        window.addEventListener('load', () => {
-            const params = new URLSearchParams(window.location.search);
-            const receipt = params.get('receipt');
-            if (receipt) {
-                switchRole('customer');
-                setTimeout(() => {
-                    document.getElementById('customerCode').value = receipt;
-                    loadCustomerReceipt();
-                }, 300);
-            }
-            loadTransactions();
-        });
-    </script>
-</body>
-</html>
+                `).join('') : '<div class="empty">No sales
