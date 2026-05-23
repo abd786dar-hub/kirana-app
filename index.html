@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kirana</title>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -92,6 +88,8 @@
         .tx-name { font-weight: bold; margin-bottom: 3px; }
         .tx-items { color: #666; font-size: 11px; margin-bottom: 3px; }
         .tx-time { color: #999; font-size: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .grid-2 input, .grid-2 button { margin-bottom: 0; }
     </style>
 </head>
 <body>
@@ -104,12 +102,12 @@
         <div id="msg" class="msg"></div>
 
         <div class="buttons">
-            <button class="btn active" id="btn-store" onclick="showStore()">🏬 Store</button>
-            <button class="btn" id="btn-customer" onclick="showCustomer()">👤 Customer</button>
+            <button class="btn active" onclick="showStore()">🏬 Store</button>
+            <button class="btn" onclick="showCustomer()">👤 Customer</button>
         </div>
 
         <!-- STORE VIEW -->
-        <div id="store-content" class="content show">
+        <div id="store" class="content show">
             <div class="section">
                 <div class="section-title">🎤 Voice</div>
                 <button class="voice-btn" id="voice-btn">🎤 Tap to Speak</button>
@@ -118,15 +116,15 @@
 
             <div class="section">
                 <div class="section-title">⌨️ Type</div>
-                <input type="text" id="name" placeholder="Item">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="text" id="name" placeholder="Item name">
+                <div class="grid-2">
                     <input type="number" id="qty" placeholder="Qty" value="1" min="1">
                     <input type="number" id="price" placeholder="Price" min="0" step="0.01">
                 </div>
                 <button onclick="addItem()">+ Add</button>
             </div>
 
-            <div id="cart-section" style="display: none;">
+            <div id="cart-show" style="display: none;">
                 <div class="section">
                     <div class="section-title">🛒 Items</div>
                     <div class="list" id="items"></div>
@@ -140,15 +138,15 @@
                 </div>
                 <div class="summary-row">
                     <span>Total Qty:</span>
-                    <span id="total-qty">0</span>
+                    <span id="qty-total">0</span>
                 </div>
                 <div class="summary-row summary-total">
                     <span>TOTAL:</span>
-                    <span id="total">₹0</span>
+                    <span id="amt">₹0</span>
                 </div>
             </div>
 
-            <input type="text" id="customer" placeholder="Customer name (optional)">
+            <input type="text" id="cust" placeholder="Customer name (optional)">
             <button class="btn-success" onclick="completeSale()">✓ Complete</button>
             <button class="btn-secondary" onclick="clearCart()">Clear</button>
 
@@ -157,7 +155,7 @@
                 <div class="summary">
                     <div class="summary-row summary-total">
                         <span>Today:</span>
-                        <span id="today-total">₹0</span>
+                        <span id="today">₹0</span>
                     </div>
                 </div>
                 <div class="tx-list" id="ledger"></div>
@@ -165,48 +163,53 @@
         </div>
 
         <!-- CUSTOMER VIEW -->
-        <div id="customer-content" class="content">
+        <div id="customer" class="content">
             <div class="section">
                 <div class="section-title">📜 Receipt</div>
-                <input type="text" id="receipt-code" placeholder="Code or QR link">
-                <button onclick="loadReceipt()">Load</button>
+                <input type="text" id="rx-code" placeholder="Code or QR link">
+                <button onclick="loadRx()">Load</button>
             </div>
 
-            <div id="receipt-box" style="display: none;">
+            <div id="rx-show" style="display: none;">
                 <div class="summary">
                     <div class="summary-row">
-                        <span id="receipt-name">Store</span>
-                        <span id="receipt-total" style="color: white;">₹0</span>
+                        <span id="rx-name">Store</span>
+                        <span id="rx-amt" style="color: white;">₹0</span>
                     </div>
                 </div>
-                <div id="receipt-items" class="section"></div>
+                <div id="rx-items" class="section"></div>
                 <button class="btn-success" onclick="payNow()">💳 Pay</button>
             </div>
 
             <div class="section" style="margin-top: 20px;">
                 <div class="section-title">💰 Spending</div>
-                <input type="text" id="spending-name" placeholder="Your name">
-                <button onclick="loadSpending()">Load</button>
+                <input type="text" id="spend-name" placeholder="Your name">
+                <button onclick="loadSpend()">Load</button>
             </div>
-            <div id="spending-box"></div>
+            <div id="spend-show"></div>
         </div>
     </div>
 
     <!-- QR MODAL -->
     <div id="qr-modal" class="modal">
         <div class="modal-box">
-            <h2>✓ Sale Done!</h2>
+            <h2>✓ Sale Complete!</h2>
             <p>Share QR with customer:</p>
             <div id="qr"></div>
-            <p id="link" style="font-size: 11px; color: #667eea; word-break: break-all; margin: 10px 0;"></p>
-            <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">Download</button>
+            <p id="qr-link" style="font-size: 11px; color: #667eea; word-break: break-all; margin: 10px 0;"></p>
+            <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">Download QR</button>
             <button class="btn-secondary" onclick="closeQR()">Close</button>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+
     <script>
-        // FIREBASE
-        const config = {
+        // ===== FIREBASE INIT =====
+        const firebaseConfig = {
             apiKey: "AIzaSyAqqvJtnVu4-Z_RbKE2fjn4mm62p4U55UE",
             authDomain: "kirana-64484.firebaseapp.com",
             projectId: "kirana-64484",
@@ -215,11 +218,12 @@
             appId: "1:863149395918:web:cb59d030a90b0f193be59f",
             measurementId: "G-FXHT6Q742W"
         };
-        firebase.initializeApp(config);
-        const db = firebase.database();
-        firebase.auth().signInAnonymously();
 
-        // STATE
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        firebase.auth().signInAnonymously().catch(err => console.log('Auth error:', err));
+
+        // ===== STATE =====
         let cart = [];
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition = SpeechRecognition ? new SpeechRecognition() : null;
@@ -227,26 +231,41 @@
 
         if (recognition) {
             recognition.language = 'en-IN';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
             recognition.onstart = () => {
                 listening = true;
-                document.getElementById('voice-btn').classList.add('listening');
-                document.getElementById('voice-btn').textContent = '🔴 Listening...';
+                const btn = document.getElementById('voice-btn');
+                btn.textContent = '🔴 Listening...';
+                btn.classList.add('listening');
             };
+
             recognition.onresult = (e) => {
-                let text = '';
+                let txt = '';
                 for (let i = e.resultIndex; i < e.results.length; i++) {
-                    text += e.results[i][0].transcript + ' ';
+                    txt += e.results[i][0].transcript + ' ';
                 }
-                parseVoice(text);
+                parseVoice(txt.trim());
             };
+
             recognition.onend = () => {
                 listening = false;
-                document.getElementById('voice-btn').classList.remove('listening');
-                document.getElementById('voice-btn').textContent = '🎤 Tap to Speak';
+                const btn = document.getElementById('voice-btn');
+                btn.textContent = '🎤 Tap to Speak';
+                btn.classList.remove('listening');
+            };
+
+            recognition.onerror = (e) => {
+                listening = false;
+                const btn = document.getElementById('voice-btn');
+                btn.textContent = '🎤 Tap to Speak';
+                btn.classList.remove('listening');
+                showMsg('Voice error: ' + e.error, 'error');
             };
         }
 
-        // VOICE
+        // ===== VOICE BUTTON =====
         document.getElementById('voice-btn').addEventListener('click', () => {
             if (recognition && !listening) {
                 recognition.start();
@@ -254,37 +273,53 @@
         });
 
         function parseVoice(text) {
-            text = text.toLowerCase().trim();
+            text = text.toLowerCase();
             const parts = text.split(/\s+/);
             let qty = 1, name = '', price = 0;
+
             for (let i = 0; i < parts.length; i++) {
                 const n = parseFloat(parts[i]);
                 if (!isNaN(n)) {
                     if (qty === 1 && i === 0) qty = n;
-                    else price = n;
+                    else if (price === 0) price = n;
                 } else {
                     name += parts[i] + ' ';
                 }
             }
-            if (name.trim()) {
-                document.getElementById('name').value = name.trim();
+
+            name = name.trim();
+            if (name) {
+                document.getElementById('name').value = name.charAt(0).toUpperCase() + name.slice(1);
                 document.getElementById('qty').value = qty;
                 if (price > 0) document.getElementById('price').value = price;
                 addItem();
             }
         }
 
-        // CART
+        // ===== CART =====
         function addItem() {
             const name = document.getElementById('name').value.trim();
             const qty = parseInt(document.getElementById('qty').value) || 1;
             const price = parseFloat(document.getElementById('price').value) || 0;
-            if (!name) { showMsg('Enter item name', 'error'); return; }
-            cart.push({ id: Date.now(), name, qty, price, total: qty * price });
+
+            if (!name) {
+                showMsg('Enter item name', 'error');
+                return;
+            }
+
+            cart.push({
+                id: Date.now(),
+                name: name,
+                qty: qty,
+                price: price,
+                total: qty * price
+            });
+
             document.getElementById('name').value = '';
             document.getElementById('qty').value = '1';
             document.getElementById('price').value = '';
             updateCart();
+            showMsg('Added: ' + qty + '× ' + name, 'success');
         }
 
         function removeItem(id) {
@@ -293,129 +328,193 @@
         }
 
         function updateCart() {
+            const itemsDiv = document.getElementById('items');
+            const cartDiv = document.getElementById('cart-show');
+
             if (cart.length === 0) {
-                document.getElementById('cart-section').style.display = 'none';
+                cartDiv.style.display = 'none';
                 return;
             }
-            document.getElementById('cart-section').style.display = 'block';
-            document.getElementById('items').innerHTML = cart.map(i => `
+
+            cartDiv.style.display = 'block';
+            itemsDiv.innerHTML = cart.map(i => `
                 <div class="item">
                     <div class="item-left">
                         <div class="item-name">${i.name}</div>
-                        <div class="item-qty">×${i.qty} @ ₹${i.price}</div>
+                        <div class="item-qty">×${i.qty} @ ₹${i.price.toFixed(2)}</div>
                     </div>
                     <div class="item-price">₹${i.total.toFixed(2)}</div>
                     <button class="remove" onclick="removeItem(${i.id})">✕</button>
                 </div>
             `).join('');
-            const qty = cart.reduce((s, i) => s + i.qty, 0);
-            const tot = cart.reduce((s, i) => s + i.total, 0);
+
+            const totalQty = cart.reduce((s, i) => s + i.qty, 0);
+            const totalAmt = cart.reduce((s, i) => s + i.total, 0);
+
             document.getElementById('count').textContent = cart.length;
-            document.getElementById('total-qty').textContent = qty;
-            document.getElementById('total').textContent = '₹' + tot.toFixed(2);
+            document.getElementById('qty-total').textContent = totalQty;
+            document.getElementById('amt').textContent = '₹' + totalAmt.toFixed(2);
         }
 
         function clearCart() {
-            cart = [];
-            document.getElementById('customer').value = '';
-            updateCart();
+            if (confirm('Clear cart?')) {
+                cart = [];
+                document.getElementById('cust').value = '';
+                updateCart();
+            }
         }
 
-        // SALE
+        // ===== SALE =====
         async function completeSale() {
-            if (cart.length === 0) { showMsg('Add items', 'error'); return; }
-            const cname = document.getElementById('customer').value || 'Walk-in';
-            const tot = cart.reduce((s, i) => s + i.total, 0);
-            const id = Date.now().toString();
+            if (cart.length === 0) {
+                showMsg('Add items first', 'error');
+                return;
+            }
+
+            const custName = document.getElementById('cust').value || 'Walk-in';
+            const totalAmt = cart.reduce((s, i) => s + i.total, 0);
+            const txId = Date.now().toString();
+
             try {
-                await db.ref('transactions/' + id).set({
-                    id, customerName: cname, items: cart, totalAmount: tot,
+                await db.ref('transactions/' + txId).set({
+                    id: txId,
+                    customerName: custName,
+                    items: cart,
+                    totalAmount: totalAmt,
                     timestamp: new Date().toLocaleString('en-IN'),
                     date: new Date().toISOString().split('T')[0]
                 });
-                const link = window.location.href.split('?')[0] + '?rx=' + id;
-                document.getElementById('link').textContent = link;
+
+                const baseUrl = window.location.href.split('?')[0];
+                const qrLink = baseUrl + '?rx=' + txId;
+                document.getElementById('qr-link').textContent = qrLink;
                 document.getElementById('qr').innerHTML = '';
-                new QRCode(document.getElementById('qr'), { text: link, width: 150, height: 150 });
+
+                new QRCode(document.getElementById('qr'), {
+                    text: qrLink,
+                    width: 180,
+                    height: 180,
+                    colorDark: '#667eea',
+                    colorLight: '#ffffff'
+                });
+
                 document.getElementById('qr-modal').classList.add('show');
                 cart = [];
-                document.getElementById('customer').value = '';
+                document.getElementById('cust').value = '';
                 updateCart();
                 loadLedger();
-            } catch (e) { showMsg('Error: ' + e.message, 'error'); }
+                showMsg('Sale complete!', 'success');
+            } catch (err) {
+                showMsg('Error: ' + err.message, 'error');
+            }
         }
 
-        function closeQR() { document.getElementById('qr-modal').classList.remove('show'); }
+        function closeQR() {
+            document.getElementById('qr-modal').classList.remove('show');
+        }
+
         function downloadQR() {
-            const c = document.querySelector('#qr canvas');
-            const a = document.createElement('a');
-            a.href = c.toDataURL();
-            a.download = 'receipt.png';
-            a.click();
+            const canvas = document.querySelector('#qr canvas');
+            if (!canvas) return;
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = 'receipt-qr.png';
+            link.click();
         }
 
-        // LEDGER
+        // ===== LEDGER =====
         function loadLedger() {
             const today = new Date().toISOString().split('T')[0];
-            db.ref('transactions').on('value', (s) => {
-                const data = s.val();
-                const list = data ? Object.values(data).filter(t => t.date === today).reverse() : [];
-                let total = 0;
-                document.getElementById('ledger').innerHTML = list.map(t => {
-                    total += t.totalAmount;
+            db.ref('transactions').on('value', (snapshot) => {
+                const data = snapshot.val();
+                const txs = data ? Object.values(data).filter(t => t.date === today).reverse() : [];
+
+                let totalToday = 0;
+                document.getElementById('ledger').innerHTML = txs.map(t => {
+                    totalToday += t.totalAmount;
                     return `
                         <div class="tx">
-                            <div class="tx-name">${t.customerName} <span style="color: #667eea;">₹${t.totalAmount.toFixed(2)}</span></div>
+                            <div class="tx-name">${t.customerName} <span style="float: right; color: #667eea;">₹${t.totalAmount.toFixed(2)}</span></div>
                             <div class="tx-items">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</div>
                             <div class="tx-time">${t.timestamp}</div>
                         </div>
                     `;
                 }).join('');
-                document.getElementById('today-total').textContent = '₹' + total.toFixed(2);
+
+                document.getElementById('today').textContent = '₹' + totalToday.toFixed(2);
             });
         }
 
-        // CUSTOMER
-        async function loadReceipt() {
-            const code = document.getElementById('receipt-code').value.trim();
-            if (!code) { showMsg('Enter code', 'error'); return; }
+        // ===== CUSTOMER =====
+        async function loadRx() {
+            const code = document.getElementById('rx-code').value.trim();
+            if (!code) {
+                showMsg('Enter code', 'error');
+                return;
+            }
+
             const id = code.includes('rx=') ? code.split('rx=')[1] : code;
+
             try {
-                const s = await db.ref('transactions/' + id).get();
-                if (!s.exists()) { showMsg('Not found', 'error'); return; }
-                const t = s.val();
-                document.getElementById('receipt-name').textContent = t.customerName;
-                document.getElementById('receipt-total').textContent = '₹' + t.totalAmount.toFixed(2);
-                document.getElementById('receipt-items').innerHTML = t.items.map(i => 
+                const snapshot = await db.ref('transactions/' + id).get();
+                if (!snapshot.exists()) {
+                    showMsg('Receipt not found', 'error');
+                    return;
+                }
+
+                const tx = snapshot.val();
+                document.getElementById('rx-name').textContent = tx.customerName;
+                document.getElementById('rx-amt').textContent = '₹' + tx.totalAmount.toFixed(2);
+
+                document.getElementById('rx-items').innerHTML = tx.items.map(i =>
                     `<div style="margin-bottom: 8px;">• ${i.qty}× ${i.name} = ₹${i.total.toFixed(2)}</div>`
                 ).join('');
-                document.getElementById('receipt-box').style.display = 'block';
-            } catch (e) { showMsg('Error', 'error'); }
+
+                document.getElementById('rx-show').style.display = 'block';
+                showMsg('Receipt loaded', 'success');
+            } catch (err) {
+                showMsg('Error: ' + err.message, 'error');
+            }
         }
 
         function payNow() {
-            const amt = document.getElementById('receipt-total').textContent.replace('₹', '');
+            const amt = document.getElementById('rx-amt').textContent.replace('₹', '');
             window.open('upi://pay?pa=9999999999@paytm&pn=Store&am=' + amt);
         }
 
-        async function loadSpending() {
-            const name = document.getElementById('spending-name').value.trim();
-            if (!name) { showMsg('Enter name', 'error'); return; }
+        async function loadSpend() {
+            const name = document.getElementById('spend-name').value.trim();
+            if (!name) {
+                showMsg('Enter name', 'error');
+                return;
+            }
+
             try {
-                const s = await db.ref('transactions').get();
-                const data = s.val();
-                if (!data) { showMsg('No data', 'error'); return; }
-                const list = Object.values(data).filter(t => t.customerName.toLowerCase() === name.toLowerCase());
-                if (list.length === 0) { showMsg('Not found', 'error'); return; }
-                const total = list.reduce((s, t) => s + t.totalAmount, 0);
-                document.getElementById('spending-box').innerHTML = `
+                const snapshot = await db.ref('transactions').get();
+                const data = snapshot.val();
+
+                if (!data) {
+                    showMsg('No data', 'error');
+                    return;
+                }
+
+                const txs = Object.values(data).filter(t => t.customerName.toLowerCase() === name.toLowerCase());
+
+                if (txs.length === 0) {
+                    showMsg('No transactions found', 'error');
+                    return;
+                }
+
+                const total = txs.reduce((s, t) => s + t.totalAmount, 0);
+
+                document.getElementById('spend-show').innerHTML = `
                     <div class="summary">
                         <div class="summary-row summary-total">
                             <span>Total Spent:</span>
                             <span>₹${total.toFixed(2)}</span>
                         </div>
                     </div>
-                    ${list.reverse().map(t => `
+                    ${txs.reverse().map(t => `
                         <div class="tx">
                             <div class="tx-name">₹${t.totalAmount.toFixed(2)}</div>
                             <div class="tx-items">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</div>
@@ -423,43 +522,47 @@
                         </div>
                     `).join('')}
                 `;
-            } catch (e) { showMsg('Error', 'error'); }
+                showMsg('Spending loaded', 'success');
+            } catch (err) {
+                showMsg('Error: ' + err.message, 'error');
+            }
         }
 
-        // UI
+        // ===== UI =====
         function showStore() {
-            document.getElementById('store-content').classList.add('show');
-            document.getElementById('customer-content').classList.remove('show');
-            document.getElementById('btn-store').classList.add('active');
-            document.getElementById('btn-customer').classList.remove('active');
+            document.getElementById('store').classList.add('show');
+            document.getElementById('customer').classList.remove('show');
+            document.querySelectorAll('.buttons .btn')[0].classList.add('active');
+            document.querySelectorAll('.buttons .btn')[1].classList.remove('active');
             loadLedger();
         }
 
         function showCustomer() {
-            document.getElementById('store-content').classList.remove('show');
-            document.getElementById('customer-content').classList.add('show');
-            document.getElementById('btn-store').classList.remove('active');
-            document.getElementById('btn-customer').classList.add('active');
+            document.getElementById('store').classList.remove('show');
+            document.getElementById('customer').classList.add('show');
+            document.querySelectorAll('.buttons .btn')[0].classList.remove('active');
+            document.querySelectorAll('.buttons .btn')[1].classList.add('active');
         }
 
         function showMsg(text, type) {
-            const m = document.getElementById('msg');
-            m.textContent = text;
-            m.className = 'msg show msg-' + type;
-            setTimeout(() => m.className = 'msg', 3000);
+            const msg = document.getElementById('msg');
+            msg.textContent = text;
+            msg.className = 'msg show msg-' + type;
+            setTimeout(() => msg.className = 'msg', 3000);
         }
 
+        // INIT
         loadLedger();
 
-        // Auto load receipt from URL
+        // Auto-load receipt from URL
         window.addEventListener('load', () => {
-            const p = new URLSearchParams(window.location.search);
-            const rx = p.get('rx');
+            const params = new URLSearchParams(window.location.search);
+            const rx = params.get('rx');
             if (rx) {
                 showCustomer();
                 setTimeout(() => {
-                    document.getElementById('receipt-code').value = rx;
-                    loadReceipt();
+                    document.getElementById('rx-code').value = rx;
+                    loadRx();
                 }, 300);
             }
         });
