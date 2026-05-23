@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kirana - Store Ledger</title>
+    <title>Kirana - Store & Customer</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -26,6 +26,8 @@
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             padding: 16px;
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .header {
             text-align: center;
@@ -35,6 +37,9 @@
         }
         .header h1 { font-size: 28px; color: #333; margin-bottom: 4px; }
         .header p { color: #666; font-size: 12px; }
+        .role-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+        .role-btn { flex: 1; padding: 10px; border: 2px solid #eee; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .role-btn.active { border-color: #667eea; background: #f0f7ff; color: #667eea; }
         .tabs {
             display: flex;
             gap: 8px;
@@ -92,8 +97,7 @@
             font-weight: 600;
             transition: 0.2s;
         }
-        button:hover { background: #5568d3; transform: translateY(-1px); }
-        button:active { transform: translateY(0); }
+        button:hover { background: #5568d3; }
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
         .btn-danger { background: #ef4444; }
@@ -110,34 +114,12 @@
             background: #f59e0b;
             animation: pulse 1s infinite;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .lang-selector {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-        .lang-btn {
-            flex: 1;
-            padding: 8px;
-            font-size: 12px;
-            background: #f0f0f0;
-            color: #333;
-            border: 2px solid transparent;
-            margin-bottom: 0;
-        }
-        .lang-btn.active {
-            background: #667eea;
-            color: white;
-            border: 2px solid #667eea;
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .items-list {
             background: #f9f9f9;
             border-radius: 6px;
             padding: 8px;
-            max-height: 180px;
+            max-height: 150px;
             overflow-y: auto;
         }
         .item-row {
@@ -183,6 +165,50 @@
             border-top: 1px solid rgba(255,255,255,0.3);
             padding-top: 6px;
         }
+        .status {
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 12px;
+            text-align: center;
+            display: none;
+        }
+        .status.show { display: block; }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.info { background: #dbeafe; color: #0c2d6b; }
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .row-2 input, .row-2 button {
+            margin-bottom: 0;
+        }
+        .qr-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .qr-modal.show { display: flex; }
+        .qr-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .qr-content h2 { margin-bottom: 16px; color: #333; }
+        .qr-content canvas { margin: 16px 0; }
+        .qr-link { color: #667eea; font-weight: 600; margin: 12px 0; word-break: break-all; font-size: 11px; }
         .transactions {
             background: #f9f9f9;
             border-radius: 6px;
@@ -205,44 +231,22 @@
             font-weight: 600;
         }
         .transaction-time { color: #999; font-size: 10px; }
-        .status {
-            padding: 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            margin-bottom: 12px;
-            text-align: center;
-            display: none;
-        }
-        .status.show { display: block; }
-        .status.success { background: #d1fae5; color: #065f46; }
-        .status.error { background: #fee2e2; color: #991b1b; }
-        .status.info { background: #dbeafe; color: #0c2d6b; }
-        .row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .row-2 input, .row-2 button {
-            margin-bottom: 0;
-        }
-        .input-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .input-options button {
-            margin-bottom: 0;
-            padding: 10px 6px;
-            font-size: 12px;
-        }
-        .hint { font-size: 11px; color: #999; margin-top: 4px; margin-bottom: 8px; }
-        .voice-result {
-            background: #e0f2fe;
-            padding: 8px;
-            border-radius: 6px;
+        .spending-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
             margin-bottom: 8px;
-            border-left: 3px solid #0284c7;
+            border-left: 4px solid #10b981;
+        }
+        .spending-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; }
+        .spending-items { color: #666; font-size: 11px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+        .permission-needed {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
             font-size: 12px;
         }
     </style>
@@ -251,96 +255,155 @@
     <div class="container">
         <div class="header">
             <h1>🏪 Kirana</h1>
-            <p>Simple Store Ledger</p>
+            <p>Store Ledger & Customer Tracker</p>
         </div>
 
         <div id="status" class="status"></div>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('entry')">📝 Entry</button>
-            <button class="tab-btn" onclick="switchTab('ledger')">📊 Ledger</button>
+        <!-- ROLE SELECTOR -->
+        <div class="role-selector">
+            <button class="role-btn active" onclick="setRole('store')">🏬 Store</button>
+            <button class="role-btn" onclick="setRole('customer')">👤 Customer</button>
         </div>
 
-        <!-- ENTRY TAB -->
-        <div id="entry" class="tab-content active">
-            
-            <!-- Language Selector -->
-            <div style="margin-bottom: 12px;">
-                <div class="lang-selector">
-                    <button class="lang-btn active" onclick="setLanguage('en')">English</button>
-                    <button class="lang-btn" onclick="setLanguage('hi')">हिंदी</button>
+        <!-- STORE OWNER VIEW -->
+        <div id="storeView" style="display: none;">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('entry')">📝 Entry</button>
+                <button class="tab-btn" onclick="switchTab('ledger')">📊 Ledger</button>
+            </div>
+
+            <!-- ENTRY TAB -->
+            <div id="entry" class="tab-content active">
+                <div id="permissionAlert" class="permission-needed" style="display: none;">
+                    ⚠️ Microphone permission needed. Click "Allow" when browser asks.
                 </div>
-            </div>
 
-            <!-- THREE INPUT OPTIONS -->
-            <div class="input-options">
-                <button class="btn-success" onclick="toggleVoice()" style="font-size: 11px;">🎤 Voice</button>
-                <button onclick="toggleManual()" style="font-size: 11px;">⌨️ Type</button>
-                <button class="btn-secondary" onclick="showMessage('Scan coming soon')" style="font-size: 11px;">📦 Scan</button>
-            </div>
-
-            <!-- VOICE SECTION -->
-            <div id="voiceSection" class="section" style="display: none;">
-                <h2 id="voiceTitle">🎤 Voice Input</h2>
-                <p class="hint" id="voiceHint">Say: "2 maggi 10" (qty, item, price)</p>
-                <button class="voice-btn" id="voiceBtn" onclick="startVoiceInput()">
-                    🎤 Tap to Speak
-                </button>
-                <div id="voiceResult" class="voice-result" style="display: none;"></div>
-            </div>
-
-            <!-- MANUAL SECTION -->
-            <div id="manualSection" class="section" style="display: none;">
-                <h2 id="typeTitle">⌨️ Type Item</h2>
-                <div class="row-2">
-                    <input type="text" id="itemInput" placeholder="Item name">
-                    <input type="number" id="qtyInput" placeholder="Qty" value="1" min="1">
-                </div>
-                <input type="number" id="priceInput" placeholder="Price (₹)" step="0.01" min="0">
-                <button onclick="addItem()">+ Add Item</button>
-            </div>
-
-            <!-- CART -->
-            <div id="itemsSection" style="display: none;">
                 <div class="section">
-                    <h2 id="cartTitle">🛒 Items in Cart</h2>
-                    <div class="items-list" id="itemsList"></div>
+                    <h2>🎤 Voice Input</h2>
+                    <button class="voice-btn" id="voiceBtn" onclick="requestMicAndSpeak()">
+                        🎤 Tap to Speak
+                    </button>
+                    <p style="font-size: 11px; color: #999; margin-top: 4px;">Say: "2 maggi 10" (qty, item, price)</p>
                 </div>
-            </div>
 
-            <!-- SUMMARY -->
-            <div class="summary">
-                <div class="summary-row">
-                    <span id="itemsLabel">Items:</span>
-                    <span id="itemCount">0</span>
+                <div class="section">
+                    <h2>⌨️ Or Type</h2>
+                    <div class="row-2">
+                        <input type="text" id="itemInput" placeholder="Item name">
+                        <input type="number" id="qtyInput" placeholder="Qty" value="1" min="1">
+                    </div>
+                    <input type="number" id="priceInput" placeholder="Price (₹)" step="0.01" min="0">
+                    <button onclick="addItem()">+ Add Item</button>
                 </div>
-                <div class="summary-row">
-                    <span id="qtyLabel">Total Qty:</span>
-                    <span id="totalQty">0</span>
-                </div>
-                <div class="summary-row total">
-                    <span id="totalLabel">TOTAL:</span>
-                    <span id="totalAmount">₹0</span>
-                </div>
-            </div>
 
-            <input type="text" id="customerName" placeholder="Customer name (optional)">
-            <button class="btn-success" onclick="completeSale()">✓ Complete Sale</button>
-            <button class="btn-secondary" onclick="clearCart()" style="margin-top: 4px;">Clear</button>
-        </div>
-
-        <!-- LEDGER TAB -->
-        <div id="ledger" class="tab-content">
-            <div class="section">
-                <h2 id="ledgerTitle">📊 Today's Sales</h2>
-                <div class="summary">
-                    <div class="summary-row total">
-                        <span id="totalSalesLabel">TOTAL:</span>
-                        <span id="todayTotal">₹0</span>
+                <div id="itemsSection" style="display: none;">
+                    <div class="section">
+                        <h2>🛒 Items</h2>
+                        <div class="items-list" id="itemsList"></div>
                     </div>
                 </div>
-                <div class="transactions" id="transactionsList"></div>
+
+                <div class="summary">
+                    <div class="summary-row">
+                        <span>Items:</span>
+                        <span id="itemCount">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total Qty:</span>
+                        <span id="totalQty">0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>TOTAL:</span>
+                        <span id="totalAmount">₹0</span>
+                    </div>
+                </div>
+
+                <input type="text" id="customerName" placeholder="Customer name (optional)">
+                <button class="btn-success" onclick="completeSale()">✓ Complete Sale</button>
+                <button class="btn-secondary" onclick="clearCart()" style="margin-top: 4px;">Clear</button>
             </div>
+
+            <!-- LEDGER TAB -->
+            <div id="ledger" class="tab-content">
+                <div class="section">
+                    <h2>📊 Today's Sales</h2>
+                    <div class="summary">
+                        <div class="summary-row total">
+                            <span>TOTAL:</span>
+                            <span id="todayTotal">₹0</span>
+                        </div>
+                    </div>
+                    <div class="transactions" id="transactionsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOMER VIEW -->
+        <div id="customerView" style="display: none;">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('receipts')">📜 Receipts</button>
+                <button class="tab-btn" onclick="switchTab('spending')">💰 Spending</button>
+            </div>
+
+            <!-- RECEIPTS TAB -->
+            <div id="receipts" class="tab-content active">
+                <div class="section">
+                    <h2>📜 Your Receipts</h2>
+                    <input type="text" id="customerCode" placeholder="Enter receipt code or paste QR link" style="margin-bottom: 8px;">
+                    <button onclick="loadCustomerReceipt()">View Receipt</button>
+                </div>
+
+                <div id="receiptDetail" style="display: none; margin-top: 16px;">
+                    <div class="spending-card">
+                        <div class="spending-header">
+                            <span id="receiptStoreName">Store</span>
+                            <span id="receiptAmount" style="color: #667eea;">₹0</span>
+                        </div>
+                        <div id="receiptItems" class="spending-items"></div>
+                        <div style="color: #999; font-size: 10px; margin-top: 6px;" id="receiptTime"></div>
+                    </div>
+
+                    <!-- Payment Section -->
+                    <div class="section" style="background: #f0f7ff; padding: 12px; border-radius: 8px; margin-top: 12px;">
+                        <h2 style="color: #0284c7; margin-bottom: 8px;">💳 Payment</h2>
+                        <button class="btn-success" onclick="generatePaymentLink()" style="width: 100%; margin-bottom: 0;">Pay via UPI</button>
+                        <p style="font-size: 10px; color: #666; margin-top: 8px; text-align: center;">
+                            You can also pay the store directly or use any UPI app
+                        </p>
+                    </div>
+                </div>
+
+                <div id="recentReceipts" style="margin-top: 16px;"></div>
+            </div>
+
+            <!-- SPENDING TAB -->
+            <div id="spending" class="tab-content">
+                <div class="section">
+                    <h2>💰 Your Spending</h2>
+                    <input type="text" id="spendingCode" placeholder="Enter your customer code" style="margin-bottom: 8px;">
+                    <button onclick="loadCustomerSpending()">Load Spending</button>
+                </div>
+
+                <div id="spendingSummary"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR CODE MODAL -->
+    <div id="qrModal" class="qr-modal">
+        <div class="qr-content">
+            <h2>✓ Sale Complete!</h2>
+            <p>Share this QR code with customer to:</p>
+            <ul style="text-align: left; font-size: 12px; color: #666; margin: 12px 0;">
+                <li>✓ View receipt</li>
+                <li>✓ Process payment</li>
+                <li>✓ Track spending</li>
+            </ul>
+            <div id="qrCode" style="text-align: center; margin: 12px 0;"></div>
+            <div class="qr-link" id="qrLink"></div>
+            <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">📥 Download QR</button>
+            <button class="btn-secondary" onclick="closeQR()">Close</button>
         </div>
     </div>
 
@@ -363,152 +426,101 @@
 
         // ============ STATE ============
         let cart = [];
-        let listening = false;
-        let language = 'en';
-        
-        // SPEECH RECOGNITION - FIX 1
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let currentRole = 'store';
         let recognition = null;
+        let micPermissionRequested = false;
 
-        if (!SpeechRecognition) {
-            console.warn('Speech Recognition not available in this browser');
-        } else {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (SpeechRecognition) {
             recognition = new SpeechRecognition();
+            recognition.language = 'en-IN';
             recognition.continuous = false;
             recognition.interimResults = true;
-            
+
             recognition.onstart = () => {
-                listening = true;
                 document.getElementById('voiceBtn').classList.add('listening');
-                document.getElementById('voiceBtn').textContent = language === 'hi' ? '🔴 सुन रहे हैं...' : '🔴 Listening...';
+                document.getElementById('voiceBtn').textContent = '🔴 Listening...';
             };
-            
+
             recognition.onresult = (event) => {
                 let transcript = '';
-                let isFinal = false;
-                
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcriptPart = event.results[i][0].transcript;
-                    transcript += transcriptPart;
-                    isFinal = event.results[i].isFinal;
+                    transcript += event.results[i][0].transcript;
                 }
-                
                 transcript = transcript.trim();
                 
-                // Display voice result - FIX 2
-                const resultDiv = document.getElementById('voiceResult');
-                resultDiv.style.display = 'block';
-                resultDiv.textContent = '🎤 ' + transcript;
-                
-                // Parse and auto-fill on final result - FIX 3
-                if (isFinal && transcript) {
-                    parseVoiceInput(transcript);
+                if (transcript) {
+                    parseAndAddItem(transcript);
                 }
             };
-            
+
             recognition.onerror = (event) => {
                 console.error('Speech error:', event.error);
-                showMessage('Voice error: ' + event.error, 'error');
-                listening = false;
-                document.getElementById('voiceBtn').classList.remove('listening');
-                document.getElementById('voiceBtn').textContent = language === 'hi' ? '🎤 बोलें' : '🎤 Tap to Speak';
+                if (event.error === 'not-allowed') {
+                    document.getElementById('permissionAlert').style.display = 'block';
+                    showMessage('Microphone permission denied', 'error');
+                } else {
+                    showMessage('Voice error: ' + event.error, 'error');
+                }
+                endVoiceSession();
             };
-            
+
             recognition.onend = () => {
-                listening = false;
-                document.getElementById('voiceBtn').classList.remove('listening');
-                document.getElementById('voiceBtn').textContent = language === 'hi' ? '🎤 बोलें' : '🎤 Tap to Speak';
+                endVoiceSession();
             };
         }
 
-        // ============ LANGUAGE SYSTEM - FIX 4 ============
-        function setLanguage(lang) {
-            language = lang;
-            
-            // Update language buttons
-            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update recognition language
-            if (recognition) {
-                if (lang === 'hi') {
-                    recognition.language = 'hi-IN';
+        // ============ MICROPHONE PERMISSION ============
+        async function requestMicAndSpeak() {
+            if (!recognition) {
+                showMessage('Voice not supported in your browser', 'error');
+                return;
+            }
+
+            try {
+                // Request microphone permission
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop()); // Stop immediately
+                
+                micPermissionRequested = true;
+                document.getElementById('permissionAlert').style.display = 'none';
+                recognition.start();
+            } catch (err) {
+                if (err.name === 'NotAllowedError') {
+                    showMessage('Please allow microphone access', 'error');
+                    document.getElementById('permissionAlert').style.display = 'block';
                 } else {
-                    recognition.language = 'en-IN';
+                    showMessage('Microphone error: ' + err.message, 'error');
                 }
             }
-            
-            // Update all text labels - FIX 5
-            updateLabels();
-            
-            showMessage(lang === 'hi' ? '✓ भाषा बदल दी गई' : '✓ Language changed', 'success');
         }
 
-        // ============ UPDATE LABELS - FIX 6 ============
-        function updateLabels() {
-            if (language === 'hi') {
-                document.getElementById('voiceTitle').textContent = '🎤 वॉइस इनपुट';
-                document.getElementById('voiceHint').textContent = 'कहें: "2 मैगी 10" (मात्रा, वस्तु, कीमत)';
-                document.getElementById('typeTitle').textContent = '⌨️ वस्तु टाइप करें';
-                document.getElementById('cartTitle').textContent = '🛒 कार्ट में वस्तुएं';
-                document.getElementById('itemsLabel').textContent = 'वस्तुएं:';
-                document.getElementById('qtyLabel').textContent = 'कुल मात्रा:';
-                document.getElementById('totalLabel').textContent = 'कुल:';
-                document.getElementById('ledgerTitle').textContent = '📊 आज की बिक्री';
-                document.getElementById('totalSalesLabel').textContent = 'कुल:';
-                document.getElementById('itemInput').placeholder = 'वस्तु का नाम';
-                document.getElementById('qtyInput').placeholder = 'मात्रा';
-                document.getElementById('priceInput').placeholder = 'कीमत (₹)';
-                document.getElementById('customerName').placeholder = 'ग्राहक का नाम (वैकल्पिक)';
-                document.getElementById('voiceBtn').textContent = '🎤 बोलें';
-            } else {
-                document.getElementById('voiceTitle').textContent = '🎤 Voice Input';
-                document.getElementById('voiceHint').textContent = 'Say: "2 maggi 10" (qty, item, price)';
-                document.getElementById('typeTitle').textContent = '⌨️ Type Item';
-                document.getElementById('cartTitle').textContent = '🛒 Items in Cart';
-                document.getElementById('itemsLabel').textContent = 'Items:';
-                document.getElementById('qtyLabel').textContent = 'Total Qty:';
-                document.getElementById('totalLabel').textContent = 'TOTAL:';
-                document.getElementById('ledgerTitle').textContent = '📊 Today\'s Sales';
-                document.getElementById('totalSalesLabel').textContent = 'TOTAL:';
-                document.getElementById('itemInput').placeholder = 'Item name';
-                document.getElementById('qtyInput').placeholder = 'Qty';
-                document.getElementById('priceInput').placeholder = 'Price (₹)';
-                document.getElementById('customerName').placeholder = 'Customer name (optional)';
-                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
-            }
+        function endVoiceSession() {
+            document.getElementById('voiceBtn').classList.remove('listening');
+            document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
         }
 
-        // ============ VOICE INPUT PARSING - FIX 7 ============
-        function parseVoiceInput(transcript) {
-            // Convert to lowercase
-            transcript = transcript.toLowerCase();
-            
-            // Split by spaces
+        // ============ PARSE VOICE INPUT ============
+        function parseAndAddItem(transcript) {
+            transcript = transcript.toLowerCase().trim();
             const parts = transcript.split(/\s+/);
             
             let qty = 1;
             let itemName = '';
             let price = 0;
             
-            // Extract numbers and text
             for (let i = 0; i < parts.length; i++) {
                 const part = parts[i];
                 const num = parseFloat(part);
                 
                 if (!isNaN(num)) {
                     if (qty === 1 && i === 0) {
-                        // First number = quantity
                         qty = Math.max(1, Math.floor(num));
-                    } else if (price === 0 && i === parts.length - 1) {
-                        // Last number = price
-                        price = num;
                     } else if (price === 0) {
-                        // Middle number = price
                         price = num;
                     }
                 } else {
-                    // Non-numeric = item name
                     itemName += part + ' ';
                 }
             }
@@ -516,53 +528,26 @@
             itemName = itemName.trim();
             
             if (itemName) {
-                // Auto-fill the form
                 document.getElementById('itemInput').value = itemName.charAt(0).toUpperCase() + itemName.slice(1);
                 document.getElementById('qtyInput').value = qty;
-                if (price > 0) document.getElementById('priceInput').value = price;
+                if (price > 0) document.getElementById('priceInput').value = price.toFixed(2);
                 
-                showMessage(`✓ ${qty}× ${itemName} @ ₹${price}`, 'success');
+                addItem();
             }
         }
 
-        // ============ VOICE CONTROL - FIX 8 ============
-        function startVoiceInput() {
-            if (!recognition) {
-                showMessage(language === 'hi' ? 'आपके ब्राउज़र में वॉइस काम नहीं करता' : 'Voice not supported in your browser', 'error');
-                return;
-            }
+        // ============ ROLE SWITCHING ============
+        function setRole(role) {
+            currentRole = role;
             
-            if (listening) {
-                recognition.stop();
-            } else {
-                document.getElementById('voiceResult').style.display = 'none';
-                recognition.start();
-            }
-        }
-
-        // ============ UI TOGGLES ============
-        function toggleVoice() {
-            const voiceSection = document.getElementById('voiceSection');
-            const manualSection = document.getElementById('manualSection');
+            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
             
-            if (voiceSection.style.display === 'none') {
-                voiceSection.style.display = 'block';
-                manualSection.style.display = 'none';
-            } else {
-                voiceSection.style.display = 'none';
-            }
-        }
-
-        function toggleManual() {
-            const manualSection = document.getElementById('manualSection');
-            const voiceSection = document.getElementById('voiceSection');
+            document.getElementById('storeView').style.display = role === 'store' ? 'block' : 'none';
+            document.getElementById('customerView').style.display = role === 'customer' ? 'block' : 'none';
             
-            if (manualSection.style.display === 'none') {
-                manualSection.style.display = 'block';
-                voiceSection.style.display = 'none';
-                document.getElementById('itemInput').focus();
-            } else {
-                manualSection.style.display = 'none';
+            if (role === 'customer') {
+                loadRecentReceipts();
             }
         }
 
@@ -577,7 +562,7 @@
             const price = parseFloat(priceInput.value) || 0;
 
             if (!itemName) {
-                showMessage(language === 'hi' ? 'वस्तु का नाम दर्ज करें' : 'Enter item name', 'error');
+                showMessage('Enter item name', 'error');
                 return;
             }
 
@@ -595,7 +580,7 @@
             itemInput.focus();
 
             updateUI();
-            showMessage(`✓ ${qty}× ${itemName} @ ₹${price} added`, 'success');
+            showMessage(`✓ ${qty}× ${itemName} added`, 'success');
         }
 
         function removeItem(id) {
@@ -631,26 +616,26 @@
         }
 
         function clearCart() {
-            if (confirm(language === 'hi' ? 'सभी वस्तुओं को साफ़ करें?' : 'Clear all items?')) {
+            if (confirm('Clear all items?')) {
                 cart = [];
                 document.getElementById('customerName').value = '';
                 updateUI();
-                showMessage(language === 'hi' ? 'कार्ट साफ़ किया गया' : 'Cart cleared', 'error');
             }
         }
 
-        // ============ COMPLETE SALE ============
+        // ============ COMPLETE SALE & GENERATE QR ============
         async function completeSale() {
             if (cart.length === 0) {
-                showMessage(language === 'hi' ? 'पहले वस्तु जोड़ें' : 'Add items first', 'error');
+                showMessage('Add items first', 'error');
                 return;
             }
 
-            const customerName = document.getElementById('customerName').value || (language === 'hi' ? 'अतिथि' : 'Walk-in');
+            const customerName = document.getElementById('customerName').value || 'Walk-in';
             const totalAmount = cart.reduce((sum, item) => sum + item.total, 0);
+            const txId = Date.now().toString();
 
             const transaction = {
-                id: Date.now().toString(),
+                id: txId,
                 customerName: customerName,
                 items: cart,
                 totalAmount: totalAmount,
@@ -659,15 +644,46 @@
             };
 
             try {
-                await db.ref('transactions/' + transaction.id).set(transaction);
-                showMessage(`✓ ${language === 'hi' ? 'बिक्री पूरी!' : 'Sale completed'}! ₹${totalAmount.toFixed(2)}`, 'success');
+                await db.ref('transactions/' + txId).set(transaction);
+                
+                // Generate QR code with link
+                const customerLink = `${window.location.origin}?receipt=${txId}`;
+                document.getElementById('qrLink').textContent = customerLink;
+                
+                // Generate QR
+                document.getElementById('qrCode').innerHTML = '';
+                new QRCode(document.getElementById('qrCode'), {
+                    text: customerLink,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#667eea',
+                    colorLight: '#ffffff'
+                });
+
+                // Show modal
+                document.getElementById('qrModal').classList.add('show');
+                
                 cart = [];
                 document.getElementById('customerName').value = '';
                 updateUI();
                 loadTransactions();
+                
+                showMessage('✓ Sale completed & QR generated!', 'success');
             } catch (err) {
                 showMessage('Error: ' + err.message, 'error');
             }
+        }
+
+        function closeQR() {
+            document.getElementById('qrModal').classList.remove('show');
+        }
+
+        function downloadQR() {
+            const canvas = document.querySelector('#qrCode canvas');
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL();
+            link.download = 'receipt-qr.png';
+            link.click();
         }
 
         // ============ LOAD TRANSACTIONS ============
@@ -693,13 +709,132 @@
             });
         }
 
+        // ============ CUSTOMER FEATURES ============
+        async function loadCustomerReceipt() {
+            const code = document.getElementById('customerCode').value.trim();
+            
+            if (!code) {
+                showMessage('Enter receipt code or paste QR link', 'error');
+                return;
+            }
+
+            // Extract ID from URL if pasted
+            const txId = code.includes('receipt=') ? code.split('receipt=')[1] : code;
+
+            try {
+                const snapshot = await db.ref(`transactions/${txId}`).get();
+                
+                if (!snapshot.exists()) {
+                    showMessage('Receipt not found', 'error');
+                    return;
+                }
+
+                const tx = snapshot.val();
+                document.getElementById('receiptStoreName').textContent = tx.customerName;
+                document.getElementById('receiptAmount').textContent = '₹' + tx.totalAmount.toFixed(2);
+                document.getElementById('receiptItems').innerHTML = tx.items.map(item => 
+                    `<div>• ${item.qty}× ${item.name} @ ₹${item.price.toFixed(2)} = ₹${item.total.toFixed(2)}</div>`
+                ).join('');
+                document.getElementById('receiptTime').textContent = tx.timestamp;
+                document.getElementById('receiptDetail').style.display = 'block';
+            } catch (err) {
+                showMessage('Error loading receipt: ' + err.message, 'error');
+            }
+        }
+
+        function generatePaymentLink() {
+            const amount = document.getElementById('receiptAmount').textContent.replace('₹', '');
+            const upiLink = `upi://pay?pa=9999999999@paytm&pn=KiranaStore&am=${amount}&tn=Receipt`;
+            window.open(upiLink);
+        }
+
+        async function loadRecentReceipts() {
+            db.ref('transactions').limitToLast(10).on('value', (snapshot) => {
+                const data = snapshot.val();
+                const txArray = data ? Object.values(data).reverse() : [];
+
+                document.getElementById('recentReceipts').innerHTML = txArray.length > 0 
+                    ? `<div class="section"><h2>Recent Receipts</h2>` + txArray.slice(0, 5).map(tx => `
+                        <div class="spending-card" onclick="document.getElementById('customerCode').value='${window.location.origin}?receipt=${tx.id}'; loadCustomerReceipt()">
+                            <div class="spending-header">
+                                <span>${tx.customerName}</span>
+                                <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
+                            </div>
+                            <div style="color: #999; font-size: 10px;">${tx.timestamp}</div>
+                        </div>
+                    `).join('') + `</div>`
+                    : '';
+            });
+        }
+
+        async function loadCustomerSpending() {
+            const code = document.getElementById('spendingCode').value.trim();
+            
+            if (!code) {
+                showMessage('Enter your customer code', 'error');
+                return;
+            }
+
+            try {
+                const snapshot = await db.ref('transactions').get();
+                const data = snapshot.val();
+                
+                if (!data) {
+                    showMessage('No spending data found', 'error');
+                    return;
+                }
+
+                const txArray = Object.values(data).filter(tx => 
+                    tx.customerName.toLowerCase() === code.toLowerCase()
+                );
+
+                if (txArray.length === 0) {
+                    showMessage('No transactions found for this customer', 'error');
+                    return;
+                }
+
+                const monthlyData = {};
+                txArray.forEach(tx => {
+                    const month = tx.date.substring(0, 7);
+                    if (!monthlyData[month]) monthlyData[month] = { total: 0, items: [] };
+                    monthlyData[month].total += tx.totalAmount;
+                    monthlyData[month].items.push(...tx.items);
+                });
+
+                document.getElementById('spendingSummary').innerHTML = `
+                    <div class="section">
+                        <div class="spending-card">
+                            <div class="spending-header">
+                                <span>Total Spent:</span>
+                                <span style="color: #667eea;">₹${txArray.reduce((s, t) => s + t.totalAmount, 0).toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        ${Object.entries(monthlyData).reverse().map(([month, data]) => `
+                            <div class="spending-card">
+                                <div class="spending-header">
+                                    <span>${month}</span>
+                                    <span style="color: #667eea;">₹${data.total.toFixed(2)}</span>
+                                </div>
+                                <div class="spending-items">${data.items.slice(0, 3).map(i => `• ${i.qty}× ${i.name}`).join(' | ')}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (err) {
+                showMessage('Error: ' + err.message, 'error');
+            }
+        }
+
         // ============ UI UTILITIES ============
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
             event.target.classList.add('active');
+            
             if (tab === 'ledger') loadTransactions();
+            if (tab === 'spending') document.getElementById('spendingCode').focus();
         }
 
         function showMessage(msg, type = 'info') {
@@ -709,9 +844,17 @@
             setTimeout(() => el.className = 'status', 3000);
         }
 
-        // Init
-        loadTransactions();
-        setLanguage('en');
+        // Check if URL has receipt parameter (for QR scanning)
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const receipt = params.get('receipt');
+            if (receipt) {
+                setRole('customer');
+                document.getElementById('customerCode').value = receipt;
+                setTimeout(() => loadCustomerReceipt(), 500);
+            }
+            loadTransactions();
+        });
     </script>
 </body>
 </html>
