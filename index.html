@@ -37,9 +37,30 @@
         }
         .header h1 { font-size: 28px; color: #333; margin-bottom: 4px; }
         .header p { color: #666; font-size: 12px; }
-        .role-selector { display: flex; gap: 8px; margin-bottom: 16px; }
-        .role-btn { flex: 1; padding: 10px; border: 2px solid #eee; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; }
-        .role-btn.active { border-color: #667eea; background: #f0f7ff; color: #667eea; }
+        
+        .role-selector { 
+            display: flex; 
+            gap: 8px; 
+            margin-bottom: 16px; 
+        }
+        .role-btn { 
+            flex: 1; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            background: white; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .role-btn:hover { border-color: #667eea; }
+        .role-btn.active { 
+            border-color: #667eea; 
+            background: #667eea;
+            color: white;
+        }
+        
         .tabs {
             display: flex;
             gap: 8px;
@@ -57,12 +78,18 @@
             font-weight: 600;
             font-size: 13px;
         }
+        .tab-btn:hover { color: #667eea; }
         .tab-btn.active {
             color: #667eea;
             border-bottom-color: #667eea;
         }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        
+        .tab-content { display: none !important; }
+        .tab-content.active { display: block !important; }
+        
+        .view { display: none; }
+        .view.active { display: block; }
+        
         .section { margin-bottom: 16px; }
         .section h2 {
             font-size: 12px;
@@ -72,7 +99,7 @@
             font-weight: 700;
             letter-spacing: 0.5px;
         }
-        input, button, select {
+        input, button {
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 6px;
@@ -104,6 +131,7 @@
         .btn-danger:hover { background: #dc2626; }
         .btn-secondary { background: #f0f0f0; color: #333; }
         .btn-secondary:hover { background: #e0e0e0; }
+        
         .voice-btn {
             background: #10b981;
             padding: 14px;
@@ -115,6 +143,7 @@
             animation: pulse 1s infinite;
         }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
         .items-list {
             background: #f9f9f9;
             border-radius: 6px;
@@ -146,6 +175,7 @@
             font-size: 11px;
             margin-left: 4px;
         }
+        
         .summary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -165,6 +195,7 @@
             border-top: 1px solid rgba(255,255,255,0.3);
             padding-top: 6px;
         }
+        
         .status {
             padding: 8px;
             border-radius: 4px;
@@ -177,14 +208,16 @@
         .status.success { background: #d1fae5; color: #065f46; }
         .status.error { background: #fee2e2; color: #991b1b; }
         .status.info { background: #dbeafe; color: #0c2d6b; }
+        
         .row-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
         }
-        .row-2 input, .row-2 button {
+        .row-2 input {
             margin-bottom: 0;
         }
+        
         .qr-modal {
             display: none;
             position: fixed;
@@ -209,6 +242,7 @@
         .qr-content h2 { margin-bottom: 16px; color: #333; }
         .qr-content canvas { margin: 16px 0; }
         .qr-link { color: #667eea; font-weight: 600; margin: 12px 0; word-break: break-all; font-size: 11px; }
+        
         .transactions {
             background: #f9f9f9;
             border-radius: 6px;
@@ -231,23 +265,29 @@
             font-weight: 600;
         }
         .transaction-time { color: #999; font-size: 10px; }
+        
         .spending-card {
             background: white;
             padding: 12px;
             border-radius: 8px;
             margin-bottom: 8px;
             border-left: 4px solid #10b981;
+            cursor: pointer;
+            transition: 0.2s;
         }
+        .spending-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .spending-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: 600; }
         .spending-items { color: #666; font-size: 11px; }
+        
         .empty-state { text-align: center; padding: 40px 20px; color: #999; }
-        .permission-needed {
+        .permission-alert {
             background: #fef3c7;
             border: 1px solid #fcd34d;
             padding: 12px;
             border-radius: 6px;
             margin-bottom: 12px;
             font-size: 12px;
+            display: none;
         }
     </style>
 </head>
@@ -260,22 +300,22 @@
 
         <div id="status" class="status"></div>
 
-        <!-- ROLE SELECTOR -->
+        <!-- ROLE SELECTOR - BUG FIX #1: Always visible, properly structured -->
         <div class="role-selector">
-            <button class="role-btn active" onclick="setRole('store')">🏬 Store</button>
-            <button class="role-btn" onclick="setRole('customer')">👤 Customer</button>
+            <button class="role-btn active" id="storeRoleBtn" onclick="switchRole('store')">🏬 Store</button>
+            <button class="role-btn" id="customerRoleBtn" onclick="switchRole('customer')">👤 Customer</button>
         </div>
 
-        <!-- STORE OWNER VIEW -->
-        <div id="storeView" style="display: none;">
+        <!-- STORE OWNER VIEW - BUG FIX #2: Starts visible with display: block -->
+        <div id="storeView" class="view active">
             <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('entry')">📝 Entry</button>
-                <button class="tab-btn" onclick="switchTab('ledger')">📊 Ledger</button>
+                <button class="tab-btn active" onclick="switchStoreTab('entry')">📝 Entry</button>
+                <button class="tab-btn" onclick="switchStoreTab('ledger')">📊 Ledger</button>
             </div>
 
-            <!-- ENTRY TAB -->
-            <div id="entry" class="tab-content active">
-                <div id="permissionAlert" class="permission-needed" style="display: none;">
+            <!-- STORE ENTRY TAB -->
+            <div id="storeEntry" class="tab-content active">
+                <div id="permissionAlert" class="permission-alert">
                     ⚠️ Microphone permission needed. Click "Allow" when browser asks.
                 </div>
 
@@ -324,8 +364,8 @@
                 <button class="btn-secondary" onclick="clearCart()" style="margin-top: 4px;">Clear</button>
             </div>
 
-            <!-- LEDGER TAB -->
-            <div id="ledger" class="tab-content">
+            <!-- STORE LEDGER TAB -->
+            <div id="storeLedger" class="tab-content">
                 <div class="section">
                     <h2>📊 Today's Sales</h2>
                     <div class="summary">
@@ -339,18 +379,18 @@
             </div>
         </div>
 
-        <!-- CUSTOMER VIEW -->
-        <div id="customerView" style="display: none;">
+        <!-- CUSTOMER VIEW - BUG FIX #2: Starts hidden with display: none -->
+        <div id="customerView" class="view">
             <div class="tabs">
-                <button class="tab-btn active" onclick="switchTab('receipts')">📜 Receipts</button>
-                <button class="tab-btn" onclick="switchTab('spending')">💰 Spending</button>
+                <button class="tab-btn active" onclick="switchCustomerTab('receipts')">📜 Receipts</button>
+                <button class="tab-btn" onclick="switchCustomerTab('spending')">💰 Spending</button>
             </div>
 
-            <!-- RECEIPTS TAB -->
-            <div id="receipts" class="tab-content active">
+            <!-- CUSTOMER RECEIPTS TAB -->
+            <div id="customerReceipts" class="tab-content active">
                 <div class="section">
                     <h2>📜 Your Receipts</h2>
-                    <input type="text" id="customerCode" placeholder="Enter receipt code or paste QR link" style="margin-bottom: 8px;">
+                    <input type="text" id="customerCode" placeholder="Enter receipt code or paste QR link">
                     <button onclick="loadCustomerReceipt()">View Receipt</button>
                 </div>
 
@@ -364,12 +404,11 @@
                         <div style="color: #999; font-size: 10px; margin-top: 6px;" id="receiptTime"></div>
                     </div>
 
-                    <!-- Payment Section -->
                     <div class="section" style="background: #f0f7ff; padding: 12px; border-radius: 8px; margin-top: 12px;">
                         <h2 style="color: #0284c7; margin-bottom: 8px;">💳 Payment</h2>
-                        <button class="btn-success" onclick="generatePaymentLink()" style="width: 100%; margin-bottom: 0;">Pay via UPI</button>
+                        <button class="btn-success" onclick="generatePaymentLink()">Pay via UPI</button>
                         <p style="font-size: 10px; color: #666; margin-top: 8px; text-align: center;">
-                            You can also pay the store directly or use any UPI app
+                            Or pay the store directly
                         </p>
                     </div>
                 </div>
@@ -377,11 +416,11 @@
                 <div id="recentReceipts" style="margin-top: 16px;"></div>
             </div>
 
-            <!-- SPENDING TAB -->
-            <div id="spending" class="tab-content">
+            <!-- CUSTOMER SPENDING TAB -->
+            <div id="customerSpending" class="tab-content">
                 <div class="section">
                     <h2>💰 Your Spending</h2>
-                    <input type="text" id="spendingCode" placeholder="Enter your customer code" style="margin-bottom: 8px;">
+                    <input type="text" id="spendingCode" placeholder="Enter your customer name">
                     <button onclick="loadCustomerSpending()">Load Spending</button>
                 </div>
 
@@ -394,12 +433,7 @@
     <div id="qrModal" class="qr-modal">
         <div class="qr-content">
             <h2>✓ Sale Complete!</h2>
-            <p>Share this QR code with customer to:</p>
-            <ul style="text-align: left; font-size: 12px; color: #666; margin: 12px 0;">
-                <li>✓ View receipt</li>
-                <li>✓ Process payment</li>
-                <li>✓ Track spending</li>
-            </ul>
+            <p>Share this QR code with customer:</p>
             <div id="qrCode" style="text-align: center; margin: 12px 0;"></div>
             <div class="qr-link" id="qrLink"></div>
             <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">📥 Download QR</button>
@@ -428,7 +462,6 @@
         let cart = [];
         let currentRole = 'store';
         let recognition = null;
-        let micPermissionRequested = false;
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -471,7 +504,7 @@
             };
         }
 
-        // ============ MICROPHONE PERMISSION ============
+        // ============ MICROPHONE PERMISSION - BUG FIX #3 ============
         async function requestMicAndSpeak() {
             if (!recognition) {
                 showMessage('Voice not supported in your browser', 'error');
@@ -479,11 +512,9 @@
             }
 
             try {
-                // Request microphone permission
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                stream.getTracks().forEach(track => track.stop()); // Stop immediately
+                stream.getTracks().forEach(track => track.stop());
                 
-                micPermissionRequested = true;
                 document.getElementById('permissionAlert').style.display = 'none';
                 recognition.start();
             } catch (err) {
@@ -536,19 +567,58 @@
             }
         }
 
-        // ============ ROLE SWITCHING ============
-        function setRole(role) {
+        // ============ ROLE SWITCHING - BUG FIX #4 ============
+        function switchRole(role) {
             currentRole = role;
             
-            document.querySelectorAll('.role-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            // Update button states
+            const storeBtn = document.getElementById('storeRoleBtn');
+            const customerBtn = document.getElementById('customerRoleBtn');
             
-            document.getElementById('storeView').style.display = role === 'store' ? 'block' : 'none';
-            document.getElementById('customerView').style.display = role === 'customer' ? 'block' : 'none';
-            
-            if (role === 'customer') {
+            if (role === 'store') {
+                storeBtn.classList.add('active');
+                customerBtn.classList.remove('active');
+                document.getElementById('storeView').classList.add('active');
+                document.getElementById('customerView').classList.remove('active');
+                loadTransactions();
+            } else {
+                storeBtn.classList.remove('active');
+                customerBtn.classList.add('active');
+                document.getElementById('storeView').classList.remove('active');
+                document.getElementById('customerView').classList.add('active');
                 loadRecentReceipts();
             }
+        }
+
+        // ============ STORE TABS - BUG FIX #5 ============
+        function switchStoreTab(tab) {
+            document.querySelectorAll('#storeEntry, #storeLedger').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById('store' + (tab === 'entry' ? 'Entry' : 'Ledger')).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab === 'ledger') loadTransactions();
+        }
+
+        // ============ CUSTOMER TABS ============
+        function switchCustomerTab(tab) {
+            document.querySelectorAll('#customerReceipts, #customerSpending').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tabs .tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const tabName = tab === 'receipts' ? 'Receipts' : 'Spending';
+            document.getElementById('customer' + tabName).classList.add('active');
+            event.target.classList.add('active');
         }
 
         // ============ ADD ITEM ============
@@ -646,11 +716,9 @@
             try {
                 await db.ref('transactions/' + txId).set(transaction);
                 
-                // Generate QR code with link
                 const customerLink = `${window.location.origin}?receipt=${txId}`;
                 document.getElementById('qrLink').textContent = customerLink;
                 
-                // Generate QR
                 document.getElementById('qrCode').innerHTML = '';
                 new QRCode(document.getElementById('qrCode'), {
                     text: customerLink,
@@ -660,7 +728,6 @@
                     colorLight: '#ffffff'
                 });
 
-                // Show modal
                 document.getElementById('qrModal').classList.add('show');
                 
                 cart = [];
@@ -668,7 +735,7 @@
                 updateUI();
                 loadTransactions();
                 
-                showMessage('✓ Sale completed & QR generated!', 'success');
+                showMessage('✓ Sale completed!', 'success');
             } catch (err) {
                 showMessage('Error: ' + err.message, 'error');
             }
@@ -693,16 +760,18 @@
                 const data = snapshot.val();
                 const txArray = data ? Object.values(data).filter(tx => tx.date === today).reverse() : [];
 
-                document.getElementById('transactionsList').innerHTML = txArray.map(tx => `
-                    <div class="transaction-item">
-                        <div class="transaction-header">
-                            <span>${tx.customerName}</span>
-                            <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
+                document.getElementById('transactionsList').innerHTML = txArray.length > 0
+                    ? txArray.map(tx => `
+                        <div class="transaction-item">
+                            <div class="transaction-header">
+                                <span>${tx.customerName}</span>
+                                <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
+                            </div>
+                            <div style="color: #666; font-size: 11px;">${tx.items.map(item => `${item.qty}× ${item.name}`).join(', ')}</div>
+                            <div class="transaction-time">${tx.timestamp}</div>
                         </div>
-                        <div style="color: #666; font-size: 11px;">${tx.items.map(item => `${item.qty}× ${item.name}`).join(', ')}</div>
-                        <div class="transaction-time">${tx.timestamp}</div>
-                    </div>
-                `).join('');
+                    `).join('')
+                    : '<div class="empty-state">No transactions today</div>';
 
                 const todayTotal = txArray.reduce((sum, tx) => sum + tx.totalAmount, 0);
                 document.getElementById('todayTotal').textContent = '₹' + todayTotal.toFixed(2);
@@ -714,11 +783,10 @@
             const code = document.getElementById('customerCode').value.trim();
             
             if (!code) {
-                showMessage('Enter receipt code or paste QR link', 'error');
+                showMessage('Enter receipt code', 'error');
                 return;
             }
 
-            // Extract ID from URL if pasted
             const txId = code.includes('receipt=') ? code.split('receipt=')[1] : code;
 
             try {
@@ -733,12 +801,12 @@
                 document.getElementById('receiptStoreName').textContent = tx.customerName;
                 document.getElementById('receiptAmount').textContent = '₹' + tx.totalAmount.toFixed(2);
                 document.getElementById('receiptItems').innerHTML = tx.items.map(item => 
-                    `<div>• ${item.qty}× ${item.name} @ ₹${item.price.toFixed(2)} = ₹${item.total.toFixed(2)}</div>`
+                    `<div>• ${item.qty}× ${item.name} = ₹${item.total.toFixed(2)}</div>`
                 ).join('');
                 document.getElementById('receiptTime').textContent = tx.timestamp;
                 document.getElementById('receiptDetail').style.display = 'block';
             } catch (err) {
-                showMessage('Error loading receipt: ' + err.message, 'error');
+                showMessage('Error: ' + err.message, 'error');
             }
         }
 
@@ -755,7 +823,7 @@
 
                 document.getElementById('recentReceipts').innerHTML = txArray.length > 0 
                     ? `<div class="section"><h2>Recent Receipts</h2>` + txArray.slice(0, 5).map(tx => `
-                        <div class="spending-card" onclick="document.getElementById('customerCode').value='${window.location.origin}?receipt=${tx.id}'; loadCustomerReceipt()">
+                        <div class="spending-card" onclick="loadReceiptFromCard('${tx.id}')">
                             <div class="spending-header">
                                 <span>${tx.customerName}</span>
                                 <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
@@ -767,11 +835,16 @@
             });
         }
 
+        function loadReceiptFromCard(txId) {
+            document.getElementById('customerCode').value = txId;
+            loadCustomerReceipt();
+        }
+
         async function loadCustomerSpending() {
             const code = document.getElementById('spendingCode').value.trim();
             
             if (!code) {
-                showMessage('Enter your customer code', 'error');
+                showMessage('Enter customer name', 'error');
                 return;
             }
 
@@ -780,7 +853,7 @@
                 const data = snapshot.val();
                 
                 if (!data) {
-                    showMessage('No spending data found', 'error');
+                    showMessage('No data found', 'error');
                     return;
                 }
 
@@ -789,7 +862,7 @@
                 );
 
                 if (txArray.length === 0) {
-                    showMessage('No transactions found for this customer', 'error');
+                    showMessage('No transactions found', 'error');
                     return;
                 }
 
@@ -827,16 +900,6 @@
         }
 
         // ============ UI UTILITIES ============
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tab).classList.add('active');
-            event.target.classList.add('active');
-            
-            if (tab === 'ledger') loadTransactions();
-            if (tab === 'spending') document.getElementById('spendingCode').focus();
-        }
-
         function showMessage(msg, type = 'info') {
             const el = document.getElementById('status');
             el.textContent = msg;
@@ -844,14 +907,16 @@
             setTimeout(() => el.className = 'status', 3000);
         }
 
-        // Check if URL has receipt parameter (for QR scanning)
+        // ============ INIT ============
         window.addEventListener('load', () => {
             const params = new URLSearchParams(window.location.search);
             const receipt = params.get('receipt');
             if (receipt) {
-                setRole('customer');
-                document.getElementById('customerCode').value = receipt;
-                setTimeout(() => loadCustomerReceipt(), 500);
+                switchRole('customer');
+                setTimeout(() => {
+                    document.getElementById('customerCode').value = receipt;
+                    loadCustomerReceipt();
+                }, 300);
             }
             loadTransactions();
         });
