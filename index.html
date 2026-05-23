@@ -3,430 +3,210 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kirana App</title>
+    <title>Kirana</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { width: 100%; height: 100%; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 10px;
+            font-family: Arial, sans-serif;
+            background: #667eea;
+            padding: 20px;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
         }
         .container {
+            background: white;
+            border-radius: 10px;
             width: 100%;
             max-width: 500px;
-            background: white;
-            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            max-height: 95vh;
-            overflow-y: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
         .header {
             text-align: center;
             margin-bottom: 20px;
             border-bottom: 2px solid #667eea;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-        .header p {
-            color: #666;
-            font-size: 13px;
-        }
-        .role-buttons {
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { color: #666; font-size: 12px; }
+        .buttons {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
         }
-        .role-btn {
+        .btn {
             flex: 1;
             padding: 12px;
             border: 2px solid #ddd;
             background: white;
-            border-radius: 8px;
             cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
             font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .role-btn:hover {
-            border-color: #667eea;
-        }
-        .role-btn.active {
-            background: #667eea;
-            color: white;
-            border-color: #667eea;
-        }
-        .view {
-            display: none;
-        }
-        .view.active {
-            display: block;
-        }
-        .section {
-            margin-bottom: 18px;
-        }
-        .section-title {
-            font-size: 12px;
-            color: #667eea;
-            text-transform: uppercase;
-            font-weight: 700;
-            margin-bottom: 10px;
-            letter-spacing: 0.5px;
-        }
-        input, button {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 13px;
-            font-family: inherit;
-            margin-bottom: 8px;
-            cursor: pointer;
-        }
-        input {
-            border: 2px solid #eee;
-            background: white;
-            color: #333;
-        }
-        input:focus {
-            outline: none;
-            border-color: #667eea;
-            background: #f9f9ff;
-        }
-        button {
-            background: #667eea;
-            color: white;
-            font-weight: 600;
             transition: 0.2s;
-            border: none;
         }
-        button:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-        }
-        button:active {
-            transform: translateY(0);
-        }
+        .btn:hover { border-color: #667eea; }
+        .btn.active { background: #667eea; color: white; border-color: #667eea; }
+        .content { display: none; }
+        .content.show { display: block; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 12px; color: #667eea; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; }
+        input { width: 100%; padding: 10px; border: 2px solid #eee; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
+        input:focus { outline: none; border-color: #667eea; background: #f9f9ff; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; background: #667eea; color: white; font-weight: bold; cursor: pointer; margin-bottom: 8px; font-size: 13px; }
+        button:hover { background: #5568d3; }
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
         .btn-danger { background: #ef4444; }
         .btn-secondary { background: #f0f0f0; color: #333; }
-        .btn-secondary:hover { background: #e0e0e0; color: #333; }
-        
-        .voice-btn {
-            background: #10b981;
-            padding: 16px;
-            font-size: 15px;
-            font-weight: 700;
-        }
-        .voice-btn.listening {
-            background: #f59e0b;
-            animation: pulse 1s infinite;
-        }
+        .voice-btn { background: #10b981; padding: 15px; font-size: 16px; font-weight: bold; }
+        .voice-btn.listening { background: #f59e0b; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-        
-        .items-list {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 12px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .item-card {
-            background: white;
-            padding: 10px;
-            margin-bottom: 6px;
-            border-radius: 6px;
-            border-left: 3px solid #667eea;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-        .item-info {
-            flex: 1;
-        }
-        .item-name {
-            font-weight: 600;
-            color: #333;
-        }
-        .item-details {
-            font-size: 11px;
-            color: #666;
-            margin-top: 3px;
-        }
-        .item-price {
-            color: #667eea;
-            font-weight: 700;
-            margin-right: 10px;
-            min-width: 50px;
-            text-align: right;
-        }
-        .remove-btn {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .summary-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-        .summary-total {
-            border-top: 1px solid rgba(255,255,255,0.3);
-            padding-top: 8px;
-            font-size: 18px;
-            font-weight: 700;
-        }
-        
-        .tx-list {
-            background: #f9f9f9;
-            border-radius: 8px;
-            padding: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .tx-item {
-            background: white;
-            padding: 10px;
-            margin-bottom: 6px;
-            border-radius: 6px;
-            border-left: 3px solid #10b981;
-            font-size: 12px;
-        }
-        .tx-header {
-            display: flex;
-            justify-content: space-between;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .tx-items {
-            color: #666;
-            font-size: 11px;
-            margin-bottom: 3px;
-        }
-        .tx-time {
-            color: #999;
-            font-size: 10px;
-        }
-        
-        .status-msg {
-            padding: 10px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 12px;
-            display: none;
-        }
-        .status-msg.show { display: block; }
-        .status-success { background: #d1fae5; color: #065f46; }
-        .status-error { background: #fee2e2; color: #991b1b; }
-        
-        .qr-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 999;
-            align-items: center;
-            justify-content: center;
-        }
-        .qr-modal.show {
-            display: flex;
-        }
-        .qr-box {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            max-width: 450px;
-            width: 90%;
-        }
-        .qr-box h2 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-        .qr-box canvas {
-            margin: 15px 0;
-            max-width: 100%;
-        }
-        .qr-link {
-            color: #667eea;
-            font-size: 11px;
-            word-break: break-all;
-            margin: 10px 0;
-        }
-        
-        .empty {
-            text-align: center;
-            padding: 30px 20px;
-            color: #999;
-        }
-        
-        .row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        .row-2 input, .row-2 button {
-            margin-bottom: 0;
-        }
+        .list { background: #f9f9f9; border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+        .item { background: white; padding: 10px; margin-bottom: 5px; border-radius: 6px; border-left: 3px solid #667eea; display: flex; justify-content: space-between; align-items: center; }
+        .item-left { flex: 1; }
+        .item-name { font-weight: bold; font-size: 13px; }
+        .item-qty { font-size: 11px; color: #666; }
+        .item-price { font-weight: bold; color: #667eea; }
+        .remove { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; }
+        .summary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+        .summary-total { font-size: 18px; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 8px; }
+        .msg { padding: 10px; border-radius: 6px; margin-bottom: 15px; text-align: center; display: none; font-size: 12px; }
+        .msg.show { display: block; }
+        .msg-success { background: #d1fae5; color: #065f46; }
+        .msg-error { background: #fee2e2; color: #991b1b; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 999; }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: white; padding: 30px; border-radius: 10px; text-align: center; width: 90%; max-width: 400px; }
+        .modal-box h2 { margin-bottom: 15px; }
+        .modal-box canvas { margin: 15px 0; }
+        .tx-list { background: #f9f9f9; border-radius: 6px; padding: 10px; max-height: 250px; overflow-y: auto; }
+        .tx { background: white; padding: 10px; margin-bottom: 5px; border-radius: 6px; border-left: 3px solid #10b981; font-size: 12px; }
+        .tx-name { font-weight: bold; margin-bottom: 3px; }
+        .tx-items { color: #666; font-size: 11px; margin-bottom: 3px; }
+        .tx-time { color: #999; font-size: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- HEADER -->
         <div class="header">
             <h1>🏪 Kirana</h1>
             <p>Store Ledger & Customer Tracker</p>
         </div>
 
-        <!-- STATUS MESSAGE -->
-        <div id="statusMsg" class="status-msg"></div>
+        <div id="msg" class="msg"></div>
 
-        <!-- ROLE SELECTOR -->
-        <div class="role-buttons">
-            <button class="role-btn active" id="storeRoleBtn">🏬 Store</button>
-            <button class="role-btn" id="customerRoleBtn">👤 Customer</button>
+        <div class="buttons">
+            <button class="btn active" id="btn-store" onclick="showStore()">🏬 Store</button>
+            <button class="btn" id="btn-customer" onclick="showCustomer()">👤 Customer</button>
         </div>
 
-        <!-- ==================== STORE VIEW ==================== -->
-        <div id="storeView" class="view active">
-            <!-- ENTRY SECTION -->
+        <!-- STORE VIEW -->
+        <div id="store-content" class="content show">
             <div class="section">
-                <div class="section-title">🎤 Voice Entry</div>
-                <button class="voice-btn" id="voiceBtn">🎤 Tap to Speak</button>
-                <p style="font-size: 11px; color: #999; margin-top: 8px;">Say: "2 maggi 10" (qty item price)</p>
+                <div class="section-title">🎤 Voice</div>
+                <button class="voice-btn" id="voice-btn">🎤 Tap to Speak</button>
+                <p style="font-size: 11px; color: #999; margin-top: 8px;">Say: "2 maggi 10"</p>
             </div>
 
-            <!-- MANUAL ENTRY -->
             <div class="section">
-                <div class="section-title">⌨️ Manual Entry</div>
-                <div class="row-2">
-                    <input type="text" id="itemName" placeholder="Item">
-                    <input type="number" id="itemQty" placeholder="Qty" value="1" min="1">
+                <div class="section-title">⌨️ Type</div>
+                <input type="text" id="name" placeholder="Item">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <input type="number" id="qty" placeholder="Qty" value="1" min="1">
+                    <input type="number" id="price" placeholder="Price" min="0" step="0.01">
                 </div>
-                <input type="number" id="itemPrice" placeholder="Price (₹)" step="0.01" min="0">
-                <button onclick="addItem()">+ Add Item</button>
+                <button onclick="addItem()">+ Add</button>
             </div>
 
-            <!-- ITEMS CART -->
-            <div id="cartSection" style="display: none;">
+            <div id="cart-section" style="display: none;">
                 <div class="section">
-                    <div class="section-title">🛒 Cart Items</div>
-                    <div class="items-list" id="itemsList"></div>
+                    <div class="section-title">🛒 Items</div>
+                    <div class="list" id="items"></div>
                 </div>
             </div>
 
-            <!-- SUMMARY -->
-            <div class="summary-box">
+            <div class="summary">
                 <div class="summary-row">
                     <span>Items:</span>
-                    <span id="itemCountDisplay">0</span>
+                    <span id="count">0</span>
                 </div>
                 <div class="summary-row">
                     <span>Total Qty:</span>
-                    <span id="totalQtyDisplay">0</span>
+                    <span id="total-qty">0</span>
                 </div>
                 <div class="summary-row summary-total">
                     <span>TOTAL:</span>
-                    <span id="totalAmountDisplay">₹0</span>
+                    <span id="total">₹0</span>
                 </div>
             </div>
 
-            <!-- CUSTOMER NAME & CHECKOUT -->
-            <input type="text" id="customerName" placeholder="Customer name (optional)">
-            <button class="btn-success" onclick="completeSale()">✓ Complete Sale</button>
-            <button class="btn-secondary" onclick="clearCart()" style="margin-top: 6px;">Clear Cart</button>
+            <input type="text" id="customer" placeholder="Customer name (optional)">
+            <button class="btn-success" onclick="completeSale()">✓ Complete</button>
+            <button class="btn-secondary" onclick="clearCart()">Clear</button>
 
-            <!-- LEDGER -->
             <div class="section" style="margin-top: 20px;">
-                <div class="section-title">📊 Today's Ledger</div>
-                <div class="summary-box">
+                <div class="section-title">📊 Ledger</div>
+                <div class="summary">
                     <div class="summary-row summary-total">
-                        <span>Total Sales:</span>
-                        <span id="todaySalesDisplay">₹0</span>
+                        <span>Today:</span>
+                        <span id="today-total">₹0</span>
                     </div>
                 </div>
-                <div class="tx-list" id="txList"></div>
+                <div class="tx-list" id="ledger"></div>
             </div>
         </div>
 
-        <!-- ==================== CUSTOMER VIEW ==================== -->
-        <div id="customerView" class="view">
-            <!-- RECEIPT VIEW -->
+        <!-- CUSTOMER VIEW -->
+        <div id="customer-content" class="content">
             <div class="section">
-                <div class="section-title">📜 View Receipt</div>
-                <input type="text" id="receiptCode" placeholder="Enter receipt code or paste QR link">
-                <button onclick="viewReceipt()">View Receipt</button>
+                <div class="section-title">📜 Receipt</div>
+                <input type="text" id="receipt-code" placeholder="Code or QR link">
+                <button onclick="loadReceipt()">Load</button>
             </div>
 
-            <div id="receiptDisplay" style="display: none;">
-                <div class="summary-box">
+            <div id="receipt-box" style="display: none;">
+                <div class="summary">
                     <div class="summary-row">
-                        <span id="rxStoreName">Store</span>
-                        <span id="rxAmount" style="color: #fff;">₹0</span>
+                        <span id="receipt-name">Store</span>
+                        <span id="receipt-total" style="color: white;">₹0</span>
                     </div>
                 </div>
-                <div id="rxItems" class="section"></div>
-                <div style="color: #999; font-size: 11px; margin-bottom: 15px;" id="rxTime"></div>
-                <button class="btn-success" onclick="payNow()">💳 Pay Now</button>
+                <div id="receipt-items" class="section"></div>
+                <button class="btn-success" onclick="payNow()">💳 Pay</button>
             </div>
 
-            <!-- SPENDING TRACKER -->
             <div class="section" style="margin-top: 20px;">
-                <div class="section-title">💰 Your Spending</div>
-                <input type="text" id="spendingName" placeholder="Enter your name">
-                <button onclick="viewSpending()">Load Spending</button>
+                <div class="section-title">💰 Spending</div>
+                <input type="text" id="spending-name" placeholder="Your name">
+                <button onclick="loadSpending()">Load</button>
             </div>
-            <div id="spendingDisplay" class="section"></div>
+            <div id="spending-box"></div>
         </div>
     </div>
 
-    <!-- QR CODE MODAL -->
-    <div id="qrModal" class="qr-modal">
-        <div class="qr-box">
-            <h2>✓ Sale Complete!</h2>
-            <p>Share this QR with customer:</p>
-            <div id="qrCodeContainer"></div>
-            <div class="qr-link" id="qrCodeLink"></div>
-            <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">📥 Download QR</button>
+    <!-- QR MODAL -->
+    <div id="qr-modal" class="modal">
+        <div class="modal-box">
+            <h2>✓ Sale Done!</h2>
+            <p>Share QR with customer:</p>
+            <div id="qr"></div>
+            <p id="link" style="font-size: 11px; color: #667eea; word-break: break-all; margin: 10px 0;"></p>
+            <button class="btn-secondary" onclick="downloadQR()" style="margin-bottom: 8px;">Download</button>
             <button class="btn-secondary" onclick="closeQR()">Close</button>
         </div>
     </div>
 
     <script>
-        // ============ FIREBASE CONFIG ============
-        const firebaseConfig = {
+        // FIREBASE
+        const config = {
             apiKey: "AIzaSyAqqvJtnVu4-Z_RbKE2fjn4mm62p4U55UE",
             authDomain: "kirana-64484.firebaseapp.com",
             projectId: "kirana-64484",
@@ -435,218 +215,254 @@
             appId: "1:863149395918:web:cb59d030a90b0f193be59f",
             measurementId: "G-FXHT6Q742W"
         };
-
-        firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(config);
         const db = firebase.database();
-        const auth = firebase.auth();
-        auth.signInAnonymously();
+        firebase.auth().signInAnonymously();
 
-        // ============ GLOBAL STATE ============
+        // STATE
         let cart = [];
-        let recognition = null;
-        let isListening = false;
-
-        // ============ SETUP VOICE ============
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
+        let recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        let listening = false;
+
+        if (recognition) {
             recognition.language = 'en-IN';
-            recognition.continuous = false;
-            
-            recognition.onstart = function() {
-                isListening = true;
-                document.getElementById('voiceBtn').classList.add('listening');
-                document.getElementById('voiceBtn').textContent = '🔴 Listening...';
+            recognition.onstart = () => {
+                listening = true;
+                document.getElementById('voice-btn').classList.add('listening');
+                document.getElementById('voice-btn').textContent = '🔴 Listening...';
             };
-            
-            recognition.onresult = function(event) {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript + ' ';
+            recognition.onresult = (e) => {
+                let text = '';
+                for (let i = e.resultIndex; i < e.results.length; i++) {
+                    text += e.results[i][0].transcript + ' ';
                 }
-                handleVoiceInput(transcript);
+                parseVoice(text);
             };
-            
-            recognition.onend = function() {
-                isListening = false;
-                document.getElementById('voiceBtn').classList.remove('listening');
-                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
-            };
-            
-            recognition.onerror = function(event) {
-                showStatus('Voice error: ' + event.error, 'error');
-                document.getElementById('voiceBtn').classList.remove('listening');
-                document.getElementById('voiceBtn').textContent = '🎤 Tap to Speak';
+            recognition.onend = () => {
+                listening = false;
+                document.getElementById('voice-btn').classList.remove('listening');
+                document.getElementById('voice-btn').textContent = '🎤 Tap to Speak';
             };
         }
 
-        // ============ VOICE CONTROL ============
-        document.getElementById('voiceBtn').addEventListener('click', function() {
-            if (!recognition) {
-                showStatus('Voice not supported', 'error');
-                return;
-            }
-            if (!isListening) {
+        // VOICE
+        document.getElementById('voice-btn').addEventListener('click', () => {
+            if (recognition && !listening) {
                 recognition.start();
             }
         });
 
-        function handleVoiceInput(text) {
+        function parseVoice(text) {
             text = text.toLowerCase().trim();
             const parts = text.split(/\s+/);
-            
-            let qty = 1, item = '', price = 0;
-            
+            let qty = 1, name = '', price = 0;
             for (let i = 0; i < parts.length; i++) {
-                const num = parseFloat(parts[i]);
-                if (!isNaN(num)) {
-                    if (qty === 1 && i === 0) qty = Math.max(1, Math.floor(num));
-                    else if (price === 0) price = num;
+                const n = parseFloat(parts[i]);
+                if (!isNaN(n)) {
+                    if (qty === 1 && i === 0) qty = n;
+                    else price = n;
                 } else {
-                    item += parts[i] + ' ';
+                    name += parts[i] + ' ';
                 }
             }
-            
-            item = item.trim();
-            if (item) {
-                document.getElementById('itemName').value = item.charAt(0).toUpperCase() + item.slice(1);
-                document.getElementById('itemQty').value = qty;
-                if (price > 0) document.getElementById('itemPrice').value = price.toFixed(2);
+            if (name.trim()) {
+                document.getElementById('name').value = name.trim();
+                document.getElementById('qty').value = qty;
+                if (price > 0) document.getElementById('price').value = price;
                 addItem();
             }
         }
 
-        // ============ CART FUNCTIONS ============
+        // CART
         function addItem() {
-            const name = document.getElementById('itemName').value.trim();
-            const qty = parseInt(document.getElementById('itemQty').value) || 1;
-            const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-
-            if (!name) {
-                showStatus('Enter item name', 'error');
-                return;
-            }
-
+            const name = document.getElementById('name').value.trim();
+            const qty = parseInt(document.getElementById('qty').value) || 1;
+            const price = parseFloat(document.getElementById('price').value) || 0;
+            if (!name) { showMsg('Enter item name', 'error'); return; }
             cart.push({ id: Date.now(), name, qty, price, total: qty * price });
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemQty').value = '1';
-            document.getElementById('itemPrice').value = '';
+            document.getElementById('name').value = '';
+            document.getElementById('qty').value = '1';
+            document.getElementById('price').value = '';
             updateCart();
-            showStatus(`✓ Added: ${qty}× ${name}`, 'success');
         }
 
         function removeItem(id) {
-            cart = cart.filter(item => item.id !== id);
+            cart = cart.filter(i => i.id !== id);
             updateCart();
         }
 
         function updateCart() {
-            const list = document.getElementById('itemsList');
-            const section = document.getElementById('cartSection');
-
             if (cart.length === 0) {
-                section.style.display = 'none';
+                document.getElementById('cart-section').style.display = 'none';
                 return;
             }
-
-            section.style.display = 'block';
-            list.innerHTML = cart.map(item => `
-                <div class="item-card">
-                    <div class="item-info">
-                        <div class="item-name">${item.name}</div>
-                        <div class="item-details">×${item.qty} @ ₹${item.price.toFixed(2)}</div>
+            document.getElementById('cart-section').style.display = 'block';
+            document.getElementById('items').innerHTML = cart.map(i => `
+                <div class="item">
+                    <div class="item-left">
+                        <div class="item-name">${i.name}</div>
+                        <div class="item-qty">×${i.qty} @ ₹${i.price}</div>
                     </div>
-                    <div class="item-price">₹${item.total.toFixed(2)}</div>
-                    <button class="remove-btn" onclick="removeItem(${item.id})">✕</button>
+                    <div class="item-price">₹${i.total.toFixed(2)}</div>
+                    <button class="remove" onclick="removeItem(${i.id})">✕</button>
                 </div>
             `).join('');
-
-            const totalQty = cart.reduce((s, i) => s + i.qty, 0);
-            const totalAmt = cart.reduce((s, i) => s + i.total, 0);
-
-            document.getElementById('itemCountDisplay').textContent = cart.length;
-            document.getElementById('totalQtyDisplay').textContent = totalQty;
-            document.getElementById('totalAmountDisplay').textContent = '₹' + totalAmt.toFixed(2);
+            const qty = cart.reduce((s, i) => s + i.qty, 0);
+            const tot = cart.reduce((s, i) => s + i.total, 0);
+            document.getElementById('count').textContent = cart.length;
+            document.getElementById('total-qty').textContent = qty;
+            document.getElementById('total').textContent = '₹' + tot.toFixed(2);
         }
 
         function clearCart() {
-            if (confirm('Clear all items?')) {
-                cart = [];
-                document.getElementById('customerName').value = '';
-                updateCart();
-            }
+            cart = [];
+            document.getElementById('customer').value = '';
+            updateCart();
         }
 
-        // ============ COMPLETE SALE ============
+        // SALE
         async function completeSale() {
-            if (cart.length === 0) {
-                showStatus('Add items first', 'error');
-                return;
-            }
-
-            const cName = document.getElementById('customerName').value || 'Walk-in';
-            const total = cart.reduce((s, i) => s + i.total, 0);
-            const txId = Date.now().toString();
-
+            if (cart.length === 0) { showMsg('Add items', 'error'); return; }
+            const cname = document.getElementById('customer').value || 'Walk-in';
+            const tot = cart.reduce((s, i) => s + i.total, 0);
+            const id = Date.now().toString();
             try {
-                await db.ref('transactions/' + txId).set({
-                    id: txId,
-                    customerName: cName,
-                    items: cart,
-                    totalAmount: total,
+                await db.ref('transactions/' + id).set({
+                    id, customerName: cname, items: cart, totalAmount: tot,
                     timestamp: new Date().toLocaleString('en-IN'),
                     date: new Date().toISOString().split('T')[0]
                 });
-
-                const link = window.location.origin + '?rx=' + txId;
-                document.getElementById('qrCodeLink').textContent = link;
-                document.getElementById('qrCodeContainer').innerHTML = '';
-                
-                new QRCode(document.getElementById('qrCodeContainer'), {
-                    text: link,
-                    width: 200,
-                    height: 200,
-                    colorDark: '#667eea',
-                    colorLight: '#ffffff'
-                });
-
-                document.getElementById('qrModal').classList.add('show');
+                const link = window.location.href.split('?')[0] + '?rx=' + id;
+                document.getElementById('link').textContent = link;
+                document.getElementById('qr').innerHTML = '';
+                new QRCode(document.getElementById('qr'), { text: link, width: 150, height: 150 });
+                document.getElementById('qr-modal').classList.add('show');
                 cart = [];
-                document.getElementById('customerName').value = '';
+                document.getElementById('customer').value = '';
                 updateCart();
                 loadLedger();
-                showStatus('Sale complete!', 'success');
-            } catch (err) {
-                showStatus('Error: ' + err.message, 'error');
-            }
+            } catch (e) { showMsg('Error: ' + e.message, 'error'); }
         }
 
-        function closeQR() {
-            document.getElementById('qrModal').classList.remove('show');
-        }
-
+        function closeQR() { document.getElementById('qr-modal').classList.remove('show'); }
         function downloadQR() {
-            const canvas = document.querySelector('#qrCodeContainer canvas');
-            const link = document.createElement('a');
-            link.href = canvas.toDataURL();
-            link.download = 'receipt.png';
-            link.click();
+            const c = document.querySelector('#qr canvas');
+            const a = document.createElement('a');
+            a.href = c.toDataURL();
+            a.download = 'receipt.png';
+            a.click();
         }
 
-        // ============ LEDGER ============
+        // LEDGER
         function loadLedger() {
             const today = new Date().toISOString().split('T')[0];
-            db.ref('transactions').on('value', snapshot => {
-                const data = snapshot.val();
-                const txs = data ? Object.values(data).filter(tx => tx.date === today).reverse() : [];
-
-                document.getElementById('txList').innerHTML = txs.length > 0 ? txs.map(tx => `
-                    <div class="tx-item">
-                        <div class="tx-header">
-                            <span>${tx.customerName}</span>
-                            <span style="color: #667eea;">₹${tx.totalAmount.toFixed(2)}</span>
+            db.ref('transactions').on('value', (s) => {
+                const data = s.val();
+                const list = data ? Object.values(data).filter(t => t.date === today).reverse() : [];
+                let total = 0;
+                document.getElementById('ledger').innerHTML = list.map(t => {
+                    total += t.totalAmount;
+                    return `
+                        <div class="tx">
+                            <div class="tx-name">${t.customerName} <span style="color: #667eea;">₹${t.totalAmount.toFixed(2)}</span></div>
+                            <div class="tx-items">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</div>
+                            <div class="tx-time">${t.timestamp}</div>
                         </div>
-                        <div class="tx-items">${tx.items.map(i => i.qty + '× ' + i.name).join(', ')}</div>
-                        <div class="tx-time">${tx.timestamp}</div>
+                    `;
+                }).join('');
+                document.getElementById('today-total').textContent = '₹' + total.toFixed(2);
+            });
+        }
+
+        // CUSTOMER
+        async function loadReceipt() {
+            const code = document.getElementById('receipt-code').value.trim();
+            if (!code) { showMsg('Enter code', 'error'); return; }
+            const id = code.includes('rx=') ? code.split('rx=')[1] : code;
+            try {
+                const s = await db.ref('transactions/' + id).get();
+                if (!s.exists()) { showMsg('Not found', 'error'); return; }
+                const t = s.val();
+                document.getElementById('receipt-name').textContent = t.customerName;
+                document.getElementById('receipt-total').textContent = '₹' + t.totalAmount.toFixed(2);
+                document.getElementById('receipt-items').innerHTML = t.items.map(i => 
+                    `<div style="margin-bottom: 8px;">• ${i.qty}× ${i.name} = ₹${i.total.toFixed(2)}</div>`
+                ).join('');
+                document.getElementById('receipt-box').style.display = 'block';
+            } catch (e) { showMsg('Error', 'error'); }
+        }
+
+        function payNow() {
+            const amt = document.getElementById('receipt-total').textContent.replace('₹', '');
+            window.open('upi://pay?pa=9999999999@paytm&pn=Store&am=' + amt);
+        }
+
+        async function loadSpending() {
+            const name = document.getElementById('spending-name').value.trim();
+            if (!name) { showMsg('Enter name', 'error'); return; }
+            try {
+                const s = await db.ref('transactions').get();
+                const data = s.val();
+                if (!data) { showMsg('No data', 'error'); return; }
+                const list = Object.values(data).filter(t => t.customerName.toLowerCase() === name.toLowerCase());
+                if (list.length === 0) { showMsg('Not found', 'error'); return; }
+                const total = list.reduce((s, t) => s + t.totalAmount, 0);
+                document.getElementById('spending-box').innerHTML = `
+                    <div class="summary">
+                        <div class="summary-row summary-total">
+                            <span>Total Spent:</span>
+                            <span>₹${total.toFixed(2)}</span>
+                        </div>
                     </div>
-                `).join('') : '<div class="empty">No sales
+                    ${list.reverse().map(t => `
+                        <div class="tx">
+                            <div class="tx-name">₹${t.totalAmount.toFixed(2)}</div>
+                            <div class="tx-items">${t.items.map(i => i.qty + '× ' + i.name).join(', ')}</div>
+                            <div class="tx-time">${t.timestamp}</div>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (e) { showMsg('Error', 'error'); }
+        }
+
+        // UI
+        function showStore() {
+            document.getElementById('store-content').classList.add('show');
+            document.getElementById('customer-content').classList.remove('show');
+            document.getElementById('btn-store').classList.add('active');
+            document.getElementById('btn-customer').classList.remove('active');
+            loadLedger();
+        }
+
+        function showCustomer() {
+            document.getElementById('store-content').classList.remove('show');
+            document.getElementById('customer-content').classList.add('show');
+            document.getElementById('btn-store').classList.remove('active');
+            document.getElementById('btn-customer').classList.add('active');
+        }
+
+        function showMsg(text, type) {
+            const m = document.getElementById('msg');
+            m.textContent = text;
+            m.className = 'msg show msg-' + type;
+            setTimeout(() => m.className = 'msg', 3000);
+        }
+
+        loadLedger();
+
+        // Auto load receipt from URL
+        window.addEventListener('load', () => {
+            const p = new URLSearchParams(window.location.search);
+            const rx = p.get('rx');
+            if (rx) {
+                showCustomer();
+                setTimeout(() => {
+                    document.getElementById('receipt-code').value = rx;
+                    loadReceipt();
+                }, 300);
+            }
+        });
+    </script>
+</body>
+</html>
