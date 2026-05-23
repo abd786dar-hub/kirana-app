@@ -22,6 +22,8 @@
             max-width: 500px;
             padding: 20px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            max-height: 95vh;
+            overflow-y: auto;
         }
         .header {
             text-align: center;
@@ -59,7 +61,6 @@
             font-weight: bold; 
             text-transform: uppercase; 
             margin-bottom: 10px;
-            letter-spacing: 0.5px;
         }
         input, button {
             width: 100%;
@@ -92,7 +93,7 @@
         .btn-success { background: #10b981; }
         .btn-success:hover { background: #059669; }
         .btn-secondary { background: #f0f0f0; color: #333; }
-        .btn-secondary:hover { background: #e0e0e0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
         
         .voice-btn {
             background: #10b981;
@@ -216,9 +217,7 @@
             align-items: center;
             justify-content: center;
         }
-        .modal.visible {
-            display: flex;
-        }
+        .modal.visible { display: flex; }
         .modal-content {
             background: white;
             padding: 30px;
@@ -227,14 +226,8 @@
             width: 90%;
             max-width: 400px;
         }
-        .modal-content h2 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-        .modal-content canvas {
-            margin: 15px 0;
-            max-width: 100%;
-        }
+        .modal-content h2 { margin-bottom: 15px; color: #333; }
+        .modal-content canvas { margin: 15px 0; max-width: 100%; }
         .qr-link {
             font-size: 11px;
             color: #667eea;
@@ -243,6 +236,15 @@
             padding: 10px;
             background: #f0f7ff;
             border-radius: 6px;
+        }
+        .voice-transcript {
+            background: #e0f2fe;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #0284c7;
+            border-left: 3px solid #0284c7;
         }
     </style>
 </head>
@@ -266,21 +268,26 @@
         <!-- STORE VIEW -->
         <div id="storeView" class="view visible">
             <div class="section">
-                <div class="section-title">🎤 Voice Input</div>
-                <button class="voice-btn" id="voiceBtn">🎤 Tap to Speak</button>
-                <p style="font-size: 11px; color: #999; margin-top: 8px;">Say: "2 maggi 10"</p>
+                <div class="section-title">🎤 Voice Input (English/Hindi)</div>
+                <button class="voice-btn" id="voiceBtn">🎤 Tap & Speak</button>
+                <div id="voiceTranscript" class="voice-transcript" style="display: none;"></div>
+                <p style="font-size: 10px; color: #999; margin-top: 8px;">
+                    Say: "2 maggi" or "do maggi" or "मैगी 2"<br>
+                    Price can be separate: "10" or "दस" or "ten"
+                </p>
             </div>
 
             <div class="section">
                 <div class="section-title">⌨️ Manual Entry</div>
-                <input type="text" id="itemName" placeholder="Item name">
+                <input type="text" id="itemName" placeholder="Item name (e.g., Maggi, Milk, Bread)">
                 <div class="grid-2">
-                    <input type="number" id="itemQty" placeholder="Qty" value="1" min="1">
-                    <input type="number" id="itemPrice" placeholder="Price" step="0.01" min="0">
+                    <input type="number" id="itemQty" placeholder="Quantity" value="1" min="1">
+                    <input type="number" id="itemPrice" placeholder="Price (₹)" step="0.01" min="0">
                 </div>
-                <button onclick="addItem()">+ Add Item</button>
+                <button onclick="addItemManually()">+ Add Item</button>
             </div>
 
+            <!-- CART ITEMS -->
             <div id="cartContainer" style="display: none;">
                 <div class="section">
                     <div class="section-title">🛒 Cart Items</div>
@@ -288,6 +295,7 @@
                 </div>
             </div>
 
+            <!-- SUMMARY -->
             <div class="summary-box">
                 <div class="summary-row">
                     <span>Items:</span>
@@ -304,9 +312,10 @@
             </div>
 
             <input type="text" id="customerNameInput" placeholder="Customer name (optional)">
-            <button class="btn-success" onclick="completeSale()">✓ Complete Sale</button>
+            <button class="btn-success" id="completeSaleBtn" onclick="completeSale()">✓ Complete Sale</button>
             <button class="btn-secondary" onclick="clearCart()">Clear Cart</button>
 
+            <!-- LEDGER -->
             <div class="section" style="margin-top: 20px;">
                 <div class="section-title">📊 Today's Ledger</div>
                 <div class="summary-box">
@@ -359,12 +368,39 @@
         </div>
     </div>
 
-    <!-- FIREBASE CDN - CORRECT VERSION -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode.js/1.5.3/qrcode.min.js"></script>
     <script>
-        // Simple localStorage instead of Firebase for MVP
-        // This eliminates all Firebase issues and still works perfectly
-        
+        // ===== HINDI/ENGLISH NUMBER CONVERTER =====
+        const hindiNumbers = {
+            'शून्य': 0, 'zero': 0, '०': 0,
+            'एक': 1, 'one': 1, 'ek': 1, '१': 1,
+            'दो': 2, 'two': 2, 'do': 2, '२': 2,
+            'तीन': 3, 'three': 3, 'teen': 3, '३': 3,
+            'चार': 4, 'four': 4, 'char': 4, '४': 4,
+            'पाँच': 5, 'five': 5, 'paanch': 5, '५': 5,
+            'छः': 6, 'six': 6, 'chhah': 6, '६': 6,
+            'सात': 7, 'seven': 7, 'saat': 7, '७': 7,
+            'आठ': 8, 'eight': 8, 'aath': 8, '८': 8,
+            'नौ': 9, 'nine': 9, 'nau': 9, '९': 9,
+            'दस': 10, 'ten': 10, 'das': 10, '१०': 10,
+            'बीस': 20, 'twenty': 20, 'bees': 20,
+            'तीस': 30, 'thirty': 30, 'tees': 30,
+            'चालीस': 40, 'forty': 40,
+            'पचास': 50, 'fifty': 50,
+            'साठ': 60, 'sixty': 60,
+            'सत्तर': 70, 'seventy': 70,
+            'अस्सी': 80, 'eighty': 80,
+            'नब्बे': 90, 'ninety': 90,
+            'सौ': 100, 'hundred': 100,
+        };
+
+        function convertToNumber(word) {
+            word = word.toLowerCase().trim();
+            if (!isNaN(word)) return parseFloat(word);
+            return hindiNumbers[word] !== undefined ? hindiNumbers[word] : null;
+        }
+
+        // ===== STORAGE =====
         const Store = {
             transactions: JSON.parse(localStorage.getItem('transactions')) || [],
             
@@ -397,14 +433,15 @@
 
         // ===== VOICE SETUP =====
         if (recognition) {
-            recognition.language = 'en-IN';
             recognition.continuous = false;
+            recognition.interimResults = false;
 
             recognition.onstart = function() {
                 isListening = true;
                 const btn = document.getElementById('voiceBtn');
                 btn.classList.add('listening');
                 btn.textContent = '🔴 Listening...';
+                document.getElementById('voiceTranscript').style.display = 'none';
             };
 
             recognition.onresult = function(event) {
@@ -412,21 +449,27 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     transcript += event.results[i][0].transcript + ' ';
                 }
-                handleVoiceInput(transcript.trim());
+                transcript = transcript.trim();
+                
+                // Show what was heard
+                document.getElementById('voiceTranscript').textContent = '🎤 Heard: ' + transcript;
+                document.getElementById('voiceTranscript').style.display = 'block';
+                
+                handleVoiceInput(transcript);
             };
 
             recognition.onend = function() {
                 isListening = false;
                 const btn = document.getElementById('voiceBtn');
                 btn.classList.remove('listening');
-                btn.textContent = '🎤 Tap to Speak';
+                btn.textContent = '🎤 Tap & Speak';
             };
 
             recognition.onerror = function(event) {
                 isListening = false;
                 const btn = document.getElementById('voiceBtn');
                 btn.classList.remove('listening');
-                btn.textContent = '🎤 Tap to Speak';
+                btn.textContent = '🎤 Tap & Speak';
                 showMessage('Voice error: ' + event.error, 'error');
             };
         }
@@ -439,45 +482,76 @@
         });
 
         function handleVoiceInput(text) {
-            text = text.toLowerCase();
-            const parts = text.split(/\s+/);
+            text = text.toLowerCase().trim();
+            
+            // Split by spaces and common separators
+            const parts = text.split(/[\s,]+/).filter(p => p.length > 0);
             
             let qty = 1;
-            let name = '';
+            let itemName = '';
             let price = 0;
+            let foundQty = false;
+            let foundPrice = false;
 
+            // Process each part
             for (let i = 0; i < parts.length; i++) {
-                const num = parseFloat(parts[i]);
-                if (!isNaN(num)) {
-                    if (qty === 1 && i === 0) {
+                const part = parts[i];
+                const num = convertToNumber(part);
+
+                // Try to convert word to number
+                if (num !== null) {
+                    if (!foundQty) {
                         qty = num;
-                    } else if (price === 0) {
+                        foundQty = true;
+                    } else if (!foundPrice) {
                         price = num;
+                        foundPrice = true;
                     }
                 } else {
-                    name += parts[i] + ' ';
+                    // It's part of item name
+                    itemName += part + ' ';
                 }
             }
 
-            name = name.trim();
-            if (name) {
-                document.getElementById('itemName').value = name.charAt(0).toUpperCase() + name.slice(1);
-                document.getElementById('itemQty').value = Math.max(1, Math.floor(qty));
-                if (price > 0) {
-                    document.getElementById('itemPrice').value = price.toFixed(2);
-                }
-                addItem();
+            itemName = itemName.trim();
+
+            // If no item found, give user a chance to re-speak
+            if (!itemName) {
+                showMessage('Could not understand item name. Try again.', 'error');
+                return;
+            }
+
+            // Auto-fill the form
+            document.getElementById('itemName').value = itemName.charAt(0).toUpperCase() + itemName.slice(1);
+            document.getElementById('itemQty').value = Math.max(1, qty);
+            if (price > 0) {
+                document.getElementById('itemPrice').value = price.toFixed(2);
+            }
+
+            // Auto add item if we have name and qty
+            if (itemName && qty >= 1) {
+                addItemManually();
             }
         }
 
         // ===== CART FUNCTIONS =====
-        function addItem() {
+        function addItemManually() {
             const name = document.getElementById('itemName').value.trim();
             const qty = parseInt(document.getElementById('itemQty').value) || 1;
             const price = parseFloat(document.getElementById('itemPrice').value) || 0;
 
             if (!name) {
                 showMessage('Please enter item name', 'error');
+                return;
+            }
+
+            if (qty < 1) {
+                showMessage('Quantity must be at least 1', 'error');
+                return;
+            }
+
+            if (price < 0) {
+                showMessage('Price cannot be negative', 'error');
                 return;
             }
 
@@ -489,9 +563,11 @@
                 total: qty * price
             });
 
+            // Clear form
             document.getElementById('itemName').value = '';
             document.getElementById('itemQty').value = '1';
             document.getElementById('itemPrice').value = '';
+            document.getElementById('itemName').focus();
 
             updateCartDisplay();
             showMessage('✓ Added: ' + qty + '× ' + name, 'success');
@@ -546,47 +622,60 @@
 
         // ===== SALE COMPLETION =====
         function completeSale() {
+            // Validation
             if (cart.length === 0) {
-                showMessage('Add items first', 'error');
+                showMessage('❌ Add items to cart first', 'error');
                 return;
             }
 
-            const custName = document.getElementById('customerNameInput').value || 'Walk-in';
-            const totalAmt = cart.reduce((sum, item) => sum + item.total, 0);
-            const txId = Date.now().toString();
+            try {
+                const custName = document.getElementById('customerNameInput').value.trim() || 'Walk-in';
+                const totalAmt = cart.reduce((sum, item) => sum + item.total, 0);
+                const txId = Date.now().toString();
 
-            const transaction = {
-                id: txId,
-                customerName: custName,
-                items: cart,
-                totalAmount: totalAmt,
-                timestamp: new Date().toLocaleString('en-IN'),
-                date: new Date().toISOString().split('T')[0]
-            };
+                // Create transaction object
+                const transaction = {
+                    id: txId,
+                    customerName: custName,
+                    items: JSON.parse(JSON.stringify(cart)), // Deep copy
+                    totalAmount: totalAmt,
+                    timestamp: new Date().toLocaleString('en-IN'),
+                    date: new Date().toISOString().split('T')[0]
+                };
 
-            Store.addTransaction(transaction);
+                // Save to storage
+                Store.addTransaction(transaction);
 
-            const baseUrl = window.location.href.split('?')[0];
-            const qrLink = baseUrl + '?receipt=' + txId;
-            
-            document.getElementById('qrLinkDisplay').textContent = qrLink;
-            document.getElementById('qrCodeDisplay').innerHTML = '';
+                // Generate QR link
+                const baseUrl = window.location.href.split('?')[0];
+                const qrLink = baseUrl + '?receipt=' + txId;
+                
+                document.getElementById('qrLinkDisplay').textContent = qrLink;
+                document.getElementById('qrCodeDisplay').innerHTML = '';
 
-            new QRCode(document.getElementById('qrCodeDisplay'), {
-                text: qrLink,
-                width: 180,
-                height: 180,
-                colorDark: '#667eea',
-                colorLight: '#ffffff'
-            });
+                // Generate QR code
+                new QRCode(document.getElementById('qrCodeDisplay'), {
+                    text: qrLink,
+                    width: 180,
+                    height: 180,
+                    colorDark: '#667eea',
+                    colorLight: '#ffffff'
+                });
 
-            document.getElementById('qrModal').classList.add('visible');
+                // Show modal
+                document.getElementById('qrModal').classList.add('visible');
 
-            cart = [];
-            document.getElementById('customerNameInput').value = '';
-            updateCartDisplay();
-            updateLedger();
-            showMessage('✓ Sale completed!', 'success');
+                // Reset cart
+                cart = [];
+                document.getElementById('customerNameInput').value = '';
+                updateCartDisplay();
+                updateLedger();
+                
+                showMessage('✓ Sale completed successfully!', 'success');
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+                console.error('Sale error:', error);
+            }
         }
 
         function closeQRModal() {
@@ -595,7 +684,10 @@
 
         function downloadQR() {
             const canvas = document.querySelector('#qrCodeDisplay canvas');
-            if (!canvas) return;
+            if (!canvas) {
+                showMessage('QR code not generated', 'error');
+                return;
+            }
             const link = document.createElement('a');
             link.href = canvas.toDataURL();
             link.download = 'receipt-qr.png';
